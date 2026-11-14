@@ -20,6 +20,8 @@ block users_content
       .alert.alert-error= t('passkey.totpConflict')
     else
       p.card-subtitle= t('passkey.setupHint', { rp: rpId })
+      if ipWarning
+        .alert.alert-info= t('passkey.ipWarning')
 
     if status.records.length
       ul.meta-list

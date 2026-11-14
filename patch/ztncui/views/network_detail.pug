@@ -43,7 +43,7 @@ block net_content
                 td(data-label=t('field.member'))
                   form.inline-form(method='POST', action=nwurl + '/members')
                     input(type='hidden', name='id', value=member.id)
-                    input.input.input-sm(type='text', name='name', value=member.name, maxlength='128', aria-label=t('field.member') + ' ' + member.id)
+                    input.input.input-sm(type='text', name='name', value=member.name, maxlength='128', placeholder=t('member.namePlaceholder'), aria-label=t('field.member') + ' ' + member.id)
                     button.btn.btn-sm.btn-ghost(type='submit')= t('btn.save')
                   a.text-danger(href=memberUrl + '/delete', data-confirm=t('confirm.removeMember'))= t('btn.remove')
                 td.mono(data-label='ID')

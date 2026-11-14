@@ -14,11 +14,11 @@ block login_content
 
   form.form-stack(method='POST', action='')
     .field
-      label(for='username')= t('field.username')
-      input#username(type='text', name='username', autocomplete='username', placeholder='admin', required, autofocus)
+      label.sr-only(for='username')= t('field.username')
+      input#username(type='text', name='username', autocomplete='username', placeholder=t('field.username'), required, autofocus)
     .field
-      label(for='password')= t('field.password')
-      input#password(type='password', name='password', autocomplete='current-password', placeholder='••••••••••••', required)
+      label.sr-only(for='password')= t('field.password')
+      input#password(type='password', name='password', autocomplete='current-password', placeholder=t('field.password'), required)
     button.btn.btn-primary.btn-block(type='submit')= t('btn.signIn')
 
   p.auth-footnote

@@ -14,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag/version for the release (for example v2.0.1)
+        description: Tag/version for the release (for example v2.0.2)
         required: true
-        default: v2.0.1
+        default: v2.0.2
       include_arm64:
         description: Also build and attach a linux/arm64 archive
         type: boolean

@@ -92,7 +92,8 @@ version, and the installed instance is restarted by default. Every request gives
   certificate, or put a trusted one on a reverse proxy.
 - **"Request origin rejected" on sign-in**: usually a reverse proxy. Pass `Host` and
   `X-Forwarded-Host` through, or add the domain to the `ALLOWED_ORIGINS` environment variable.
-- **Passkeys do not work**: WebAuthn needs a domain plus a trusted certificate; a bare IP
-  cannot be used. Fall back to TOTP or password-only login.
+- **Passkeys do not work**: WebAuthn only accepts a domain plus a trusted certificate. On a
+  bare IP the page warns but still lets you try; most browsers refuse. Fall back to TOTP or
+  password-only login.
 - **The store still shows the old version**: refresh the app store once; if it persists, rerun
   the script with `--source cdn`.

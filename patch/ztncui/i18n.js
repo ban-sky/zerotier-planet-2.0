@@ -177,6 +177,7 @@ const messages = {
     'members.countOther': '此网络上有 {count} 台设备',
     'members.emptyBefore': '还没有成员。邀请设备加入 ',
     'members.emptyAfter': '。',
+    'member.namePlaceholder': '设备名（可选）',
     'member.authorized': '已授权',
     'member.notAuthorized': '未授权',
     'member.enabled': '启用',
@@ -214,6 +215,8 @@ const messages = {
 
     // Password page.
     'password.subtitle': '至少 10 个字符。',
+    'password.placeholder': '至少 10 个字符',
+    'password.placeholderRepeat': '再输入一次新密码',
     'password.requireChange': '下次登录时要求修改密码',
     'password.requireChangeHint': '为他人创建账号时很有用。',
 
@@ -273,6 +276,7 @@ const messages = {
     'twofa.title': '两步验证',
     'twofa.subtitle': '{name} 已启用两步验证，请输入验证器中的 6 位代码。',
     'twofa.code': '验证器代码',
+    'twofa.codePlaceholder': '6 位动态码',
     'twofa.codeHint': '6 位数字，或一个备用码。',
     'twofa.submit': '验证并登录',
     'twofa.cancel': '取消并退出',
@@ -304,6 +308,7 @@ const messages = {
     'passkey.setupHint': '通行密钥绑定到域名 {rp}，浏览器会用指纹、面容或系统 PIN 确认身份。',
     'passkey.totpConflict': '已启用两步验证。两者只能选一个：先关闭两步验证，再添加通行密钥。',
     'passkey.add': '添加通行密钥',
+    'passkey.ipWarning': '当前通过 IP 访问。WebAuthn 规范要求依赖方标识是域名，多数浏览器会拒绝 IP；点「添加通行密钥」仍会尝试，若浏览器报错，请改用域名访问（并让证书受信任），或用 PASSKEY_RP_ID / PASSKEY_ORIGIN 指定域名。',
     'passkey.remove': '删除',
     'passkey.none': '还没有添加通行密钥。',
     'passkey.defaultLabel': '通行密钥',
@@ -536,6 +541,7 @@ const messages = {
     'members.countOther': '{count} devices on this network',
     'members.emptyBefore': 'No members yet. Invite a device to join ',
     'members.emptyAfter': '.',
+    'member.namePlaceholder': 'Device name (optional)',
     'member.authorized': 'Authorized',
     'member.notAuthorized': 'Not authorized',
     'member.enabled': 'Enabled',
@@ -573,6 +579,8 @@ const messages = {
 
     // Password page.
     'password.subtitle': 'At least 10 characters.',
+    'password.placeholder': 'At least 10 characters',
+    'password.placeholderRepeat': 'Repeat the new password',
     'password.requireChange': 'Require password change on next login',
     'password.requireChangeHint': 'Useful when creating an account for someone else.',
 
@@ -632,6 +640,7 @@ const messages = {
     'twofa.title': 'Two-step verification',
     'twofa.subtitle': '{name} uses two-step verification. Enter the 6-digit code from your authenticator.',
     'twofa.code': 'Authenticator code',
+    'twofa.codePlaceholder': '6-digit code',
     'twofa.codeHint': 'Six digits, or one backup code.',
     'twofa.submit': 'Verify and sign in',
     'twofa.cancel': 'Cancel and sign out',
@@ -663,6 +672,7 @@ const messages = {
     'passkey.setupHint': 'Passkeys are bound to the domain {rp}. Your browser confirms with a fingerprint, face or system PIN.',
     'passkey.totpConflict': 'Two-step verification is on. Pick one: turn that off before adding a passkey.',
     'passkey.add': 'Add a passkey',
+    'passkey.ipWarning': 'You are browsing by IP. WebAuthn requires the relying party ID to be a domain and most browsers reject an IP; the button below still attempts it, and if the browser refuses, open the UI through a domain with a trusted certificate (or set PASSKEY_RP_ID / PASSKEY_ORIGIN).',
     'passkey.remove': 'Remove',
     'passkey.none': 'No passkey has been added yet.',
     'passkey.defaultLabel': 'Passkey',

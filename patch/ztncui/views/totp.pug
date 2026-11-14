@@ -60,7 +60,7 @@ block users_content
       form.form-stack(method='POST', action=base + '/enable')
         .field
           label(for='enable-code')= t('twofa.code')
-          input#enable-code(type='text', name='code', inputmode='numeric', autocomplete='one-time-code', spellcheck='false', placeholder='123456', maxlength='8', required, autofocus)
+          input#enable-code(type='text', name='code', inputmode='numeric', autocomplete='one-time-code', spellcheck='false', placeholder=t('twofa.codePlaceholder'), maxlength='8', required, autofocus)
           span.field-hint= t('twofa.codeHint')
         .form-actions
           button.btn.btn-primary(type='submit')= t('twofa.enable')

@@ -156,6 +156,11 @@ main { flex: 1; }
 .field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
 .field label { font-size: 0.8rem; font-weight: 750; color: #33425c; }
 .field-hint { color: var(--muted); font-size: 0.78rem; }
+/* Placeholders sit inside the box; keep them clearly lighter than real input. */
+.input::placeholder, input[type="text"]::placeholder, input[type="password"]::placeholder,
+textarea::placeholder { color: #a7b5c8; opacity: 1; }
+input:focus::placeholder, textarea:focus::placeholder { color: #c3cedd; }
+.field label.sr-only + input { margin-top: 0; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .input, input[type="text"], input[type="password"], textarea, select {
   width: 100%; border: 1px solid #ccd6e4; border-radius: 9px; background: #fff; color: var(--ink);

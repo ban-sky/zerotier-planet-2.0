@@ -634,10 +634,15 @@ function relyingParty(req) {
   const origin = configuredOrigin || String(req.protocol + '://' + req.get('host')).toLowerCase();
 
   if (!rpId) return { ok: false, reason: 'no-host' };
-  if (isIpLiteral(rpId)) return { ok: false, reason: 'ip' };
   if (!/^https:\/\//.test(origin) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
     return { ok: false, reason: 'insecure' };
   }
+  // The WebAuthn spec only allows a registrable domain as the relying party ID, and
+  // mainstream browsers refuse a bare IP. We still hand the value over so the attempt
+  // actually reaches the browser (some embedded browsers and future versions may
+  // accept it) and its own error message can be shown, but flag it so the page can
+  // explain the domain requirement up front.
+  if (isIpLiteral(rpId)) return { ok: true, rpId, origin, name: RP_NAME, warning: 'ip' };
   return { ok: true, rpId, origin, name: RP_NAME };
 }
 
@@ -917,6 +922,7 @@ exports.passkeys_get = async function(req, res) {
     available: rp.ok,
     unavailableReason: rp.ok ? '' : passkeyError(req, rp.reason),
     rpId: rp.ok ? rp.rpId : '',
+    ipWarning: rp.ok && rp.warning === 'ip',
     message: flash
   });
 };
