@@ -160,25 +160,28 @@ router.post('/login', async function(req, res, next) {
       });
     }
 
-    // Password is correct. When a second factor is on, stop here and ask for
-    // it; nothing is granted until that factor is verified. Passkeys and TOTP
-    // are mutually exclusive, so at most one of the branches applies.
+    // Password is correct. When any second factor is on, stop here and ask for
+    // one of them; nothing is granted until it is verified. An account may have
+    // both a passkey and TOTP enabled, so the sign-in page offers whichever
+    // factors are configured and the user picks one.
     const passkeyState = await usersController.passkey_status(user.name);
     const totpState = await usersController.totp_status(user.name);
-    if (passkeyState.enabled || totpState.enabled) {
+    const methods = [];
+    if (passkeyState.enabled) methods.push('passkey');
+    if (totpState.enabled) methods.push('totp');
+    if (methods.length) {
       clearFailures(ip);
       const redirectTo = safeRedirect(req.query.redirect);
-      const method = passkeyState.enabled ? 'passkey' : 'totp';
       req.session.regenerate(function(regenErr) {
         if (regenErr) return next(regenErr);
         req.session.pending2fa = {
           name: user.name,
           pass_set: !!user.pass_set,
           redirect: redirectTo,
-          method,
+          methods,
           issued_at: Date.now()
         };
-        res.redirect(method === 'passkey' ? '/login/passkey' : '/login/2fa');
+        res.redirect('/login/2fa');
       });
       return;
     }
@@ -196,9 +199,14 @@ router.get('/login/2fa', function(req, res) {
     delete req.session.pending2fa;
     return res.redirect('/login');
   }
+  const methods = Array.isArray(pending.methods) ? pending.methods : [];
+  const rp = usersController.passkey_rp(req);
   res.render('login2fa', {
     title: msg(req, 'page.twoFactor'),
     name: pending.name,
+    usePasskey: methods.indexOf('passkey') >= 0,
+    useTotp: methods.indexOf('totp') >= 0,
+    passkeyAvailable: rp.ok,
     message: null
   });
 });
@@ -222,12 +230,21 @@ router.post('/login/2fa', async function(req, res, next) {
     });
   }
 
+  const methods = Array.isArray(pending.methods) ? pending.methods : [];
+  if (methods.indexOf('totp') < 0) {
+    req.session.error = msg(req, 'msg.totpNotEnabled');
+    return res.redirect('/login/2fa');
+  }
+
   const code = typeof req.body.code === 'string' ? req.body.code : '';
   if (!code || code.length > 32) {
     recordFailure(ip);
     return res.status(401).render('login2fa', {
       title: msg(req, 'page.twoFactor'),
       name: pending.name,
+      usePasskey: methods.indexOf('passkey') >= 0,
+      useTotp: true,
+      passkeyAvailable: usersController.passkey_rp(req).ok,
       message: msg(req, 'msg.totpCodeInvalid')
     });
   }
@@ -239,6 +256,9 @@ router.post('/login/2fa', async function(req, res, next) {
       return res.status(401).render('login2fa', {
         title: msg(req, 'page.twoFactor'),
         name: pending.name,
+        usePasskey: methods.indexOf('passkey') >= 0,
+        useTotp: true,
+        passkeyAvailable: usersController.passkey_rp(req).ok,
         message: msg(req, 'msg.totpCodeInvalid')
       });
     }
@@ -261,21 +281,30 @@ function pendingOrRedirect(req, res) {
   return pending;
 }
 
+// Kept so that old bookmarks and the previous redirect keep working; the
+// combined page lists every configured factor.
 router.get('/login/passkey', function(req, res) {
-  const pending = pendingOrRedirect(req, res);
-  if (!pending) return res.redirect('/login');
-  const rp = usersController.passkey_rp(req);
-  res.render('loginPasskey', {
-    title: msg(req, 'page.passkey'),
-    name: pending.name,
-    available: rp.ok,
-    message: rp.ok ? null : usersController.passkeyError(req, rp.reason)
-  });
+  if (!pendingOrRedirect(req, res)) return res.redirect('/login');
+  res.redirect('/login/2fa');
 });
 
-router.post('/login/passkey/begin', async function(req, res) {
+function passkeyPending(req, res) {
   const pending = pendingOrRedirect(req, res);
-  if (!pending) return res.status(401).json({ error: msg(req, 'msg.passkeyExpired') });
+  if (!pending) {
+    res.status(401).json({ error: msg(req, 'msg.passkeyExpired') });
+    return null;
+  }
+  const methods = Array.isArray(pending.methods) ? pending.methods : [];
+  if (methods.indexOf('passkey') < 0) {
+    res.status(401).json({ error: msg(req, 'msg.passkeyInvalid') });
+    return null;
+  }
+  return pending;
+}
+
+router.post('/login/passkey/begin', async function(req, res) {
+  const pending = passkeyPending(req, res);
+  if (!pending) return;
   try {
     const options = await usersController.passkey_begin_authentication(req, pending.name);
     res.json(options);
@@ -285,8 +314,8 @@ router.post('/login/passkey/begin', async function(req, res) {
 });
 
 router.post('/login/passkey/finish', async function(req, res, next) {
-  const pending = pendingOrRedirect(req, res);
-  if (!pending) return res.status(401).json({ error: msg(req, 'msg.passkeyExpired') });
+  const pending = passkeyPending(req, res);
+  if (!pending) return;
 
   const ip = clientIp(req);
   if (isThrottled(ip)) {

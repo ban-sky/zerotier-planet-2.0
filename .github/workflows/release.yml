@@ -14,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag/version for the release (for example v2.0.2)
+        description: Tag/version for the release (for example v2.0.3)
         required: true
-        default: v2.0.2
+        default: v2.0.3
       include_arm64:
         description: Also build and attach a linux/arm64 archive
         type: boolean
@@ -449,6 +449,16 @@ jobs:
             -d 'code=000000' https://127.0.0.1:3443/login/2fa)
           echo "wrong token status: $status"
           [ "$status" = "401" ]
+
+          # A passkey and TOTP may be enabled together: with TOTP already on, the
+          # passkey page must still offer the enrolment button.
+          status=$(curl -ks -b "$jar" -c "$jar" -o /tmp/passkeys.html -w '%{http_code}' \
+            https://127.0.0.1:3443/users/admin/passkeys)
+          echo "passkeys page with TOTP on: $status"
+          [ "$status" = "200" ]
+          if ! grep -q 'id="passkey-start"' /tmp/passkeys.html; then
+            echo "::error::the passkey page stopped offering enrolment while TOTP is enabled"; exit 1
+          fi
 
       - name: Verify passkey enrollment is wired through
         run: |

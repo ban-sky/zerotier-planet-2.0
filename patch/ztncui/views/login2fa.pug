@@ -8,17 +8,30 @@ extends login_layout
 block login_content
   img.auth-logo(src='/images/zt-mark.svg', alt='', width='60', height='60')
   h1.auth-title= t('twofa.title')
-  p.auth-subtitle= t('twofa.subtitle', { name: name })
+  p.auth-subtitle= t(usePasskey && useTotp ? 'twofa.subtitleChoose' : 'twofa.subtitle', { name: name })
 
   if message
     .alert.alert-error= message
 
-  form.form-stack(method='POST', action='')
-    .field
-      label(for='code')= t('twofa.code')
-      input#code(type='text', name='code', inputmode='numeric', autocomplete='one-time-code', autocapitalize='off', spellcheck='false', placeholder=t('twofa.codePlaceholder'), maxlength='32', required, autofocus)
-      span.field-hint= t('twofa.codeHint')
-    button.btn.btn-primary.btn-block(type='submit')= t('twofa.submit')
+  if usePasskey
+    .alert.alert-error#passkey-error(hidden)
+    button.btn.btn-primary.btn-block#passkey-start(type='button', data-begin='/login/passkey/begin', data-finish='/login/passkey/finish', data-mode='login')= t('passkey.submit')
+    if !passkeyAvailable
+      p.meta-line= t('passkey.unavailableShort')
+
+  if usePasskey && useTotp
+    p.auth-or= t('twofa.orCode')
+
+  if useTotp
+    form.form-stack(method='POST', action='')
+      .field
+        label(for='code')= t('twofa.code')
+        input#code(type='text', name='code', inputmode='numeric', autocomplete='one-time-code', autocapitalize='off', spellcheck='false', placeholder=t('twofa.codePlaceholder'), maxlength='32', required, autofocus=!usePasskey)
+        span.field-hint= t('twofa.codeHint')
+      button.btn.btn-secondary.btn-block(type='submit')= t('twofa.submit')
 
   p.auth-footnote
     a(href='/logout')= t('twofa.cancel')
+
+  if usePasskey
+    script(src='/js/passkey.js', defer)

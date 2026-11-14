@@ -16,12 +16,12 @@ block users_content
 
     if !available
       .alert.alert-error= unavailableReason
-    else if totpEnabled
-      .alert.alert-error= t('passkey.totpConflict')
     else
       p.card-subtitle= t('passkey.setupHint', { rp: rpId })
       if ipWarning
         .alert.alert-info= t('passkey.ipWarning')
+      if totpEnabled
+        p.meta-line= t('passkey.totpAlsoOn')
 
     if status.records.length
       ul.meta-list

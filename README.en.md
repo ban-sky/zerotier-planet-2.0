@@ -9,7 +9,7 @@ upstream project.
 
 > **Three steps to a running planet**
 > 1. Start the container (replace `<public-ip>` with your IPv4):
->    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<public-ip> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.2`
+>    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<public-ip> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.3`
 > 2. Open `https://<public-ip>:3443` and accept the self-signed certificate warning.
 > 3. The initial password is inside the container: `docker exec zerotier-planet cat /app/config/admin-password`; change it when prompted.
 
@@ -17,13 +17,13 @@ upstream project.
 > The project is `zerotier-planet-2.0` (formerly `docker-zerotier-planet-2.0`).
 > Images are published to `docker.io/lonelyx/zerotier-planet` (**default**) and
 > `ghcr.io/ban-sky/zerotier-planet` (alternative), with tags that match the version
-> **without a leading `v`** (git tags and Releases still use `v2.0.2`). The old repository
+> **without a leading `v`** (git tags and Releases still use `v2.0.3`). The old repository
 > URL and the old image names keep working.
 
 > **Versioning**
 > Numbering restarts at `2.0.0` as `2.<feature>.<fix>`: the leading 2 identifies the 2.0
 > maintenance branch, the middle number is for feature releases (e.g. `2.1.0`) and the last
-> one for small releases and bug fixes (e.g. `2.0.2`).
+> one for small releases and bug fixes (e.g. `2.0.3`).
 
 > **License warning (important)**
 > Since ZeroTier 1.16 the controller lives in `nonfree/` and is covered by the
@@ -166,11 +166,11 @@ collapses into a menu:
 - **1Panel cron helper.** `scripts/1panel-scheduled-update.sh` can be scheduled as a
   1Panel cron job to refresh the app package and restart the installed instance.
 
-### Deployment integrations (2.0.2)
+### Deployment integrations (2.0.3)
 
 - Ships a 1Panel app package (`1panel/apps/zerotier-planet`) plus an install script, so the
   panel can install, start/stop and upgrade it from a form; the image tag is pinned to the
-  release version (e.g. `2.0.2`, no leading `v`) so the panel can detect updates.
+  release version (e.g. `2.0.3`, no leading `v`) so the panel can detect updates.
 - The app package, the `docker save` archives and the cron helper are published together in
   every Release, with `SHA256SUMS` covering all of them.
 
@@ -208,7 +208,7 @@ directory.
 > `zerotier-planet-2.0-<version>-amd64.tar.gz` from the
 > [Releases](https://github.com/ban-sky/zerotier-planet-2.0/releases) page
 > and `docker load` it, or pull
-> `docker.io/lonelyx/zerotier-planet:2.0.2` directly.
+> `docker.io/lonelyx/zerotier-planet:2.0.3` directly.
 
 ### Option 2: Compose
 
@@ -234,7 +234,7 @@ git clone https://github.com/ban-sky/zerotier-planet-2.0.git
 cd zerotier-planet-2.0 && sudo ./scripts/install-1panel-app.sh
 
 # or unpack the release asset directly
-sudo tar -xzf 1panel-app-2.0.2.tar.gz -C /opt/1panel/resource/apps/local
+sudo tar -xzf 1panel-app-2.0.3.tar.gz -C /opt/1panel/resource/apps/local
 ```
 
 Then **App Store → Update app list** and install `ZeroTier Planet`. The form fields (public
@@ -246,7 +246,7 @@ documentation: [`1panel/apps/zerotier-planet/README_en.md`](1panel/apps/zerotier
   `sudo find /opt/1panel/apps -maxdepth 6 -name admin-password` on the host.
 - The community edition only scans `/opt/1panel/resource/apps/local/`; the pro "custom app
   repository" can also point at this repo's `1panel/apps` directory. The package pins the
-  image tag to `2.0.2` (no `v`, never `latest`) so the panel can detect upgrades.
+  image tag to `2.0.3` (no `v`, never `latest`) so the panel can detect upgrades.
 
 #### Cron job: follow new releases automatically
 
@@ -289,7 +289,8 @@ signing in needs the password **and** a code from an authenticator:
    displayed exactly once.
 
 After that a sign-in is two-step: a correct password only reaches `/login/2fa`, and the
-session is created once a token or a backup code is verified. A token is refused if its time
+session is created once a token or a backup code is verified. When the account also has a
+passkey, that same page shows the passkey button next to the code field. A token is refused if its time
 step was already used for that account (`lastStep`), so a code captured on the wire cannot be
 replayed inside its 30 s window; backup codes are single use. Turning it off needs **the
 current password plus one valid code**, so a stolen session cannot quietly disable it.
@@ -299,15 +300,15 @@ The secret and the backup-code hashes sit next to the password hash in the contr
 service, no SMS, no extra runtime dependency. `TOTP_ISSUER` (default `ZeroTier Planet`) is the
 name shown in the authenticator.
 
-> TOTP and passkeys are mutually exclusive: enabling one blocks the other. See
+> TOTP and passkeys can be enabled together; the sign-in page offers both. See
 > "Passkeys (WebAuthn)" below to switch.
 
 ### Passkeys (WebAuthn)
 
 Passkeys are the alternative second factor to TOTP: the browser asks for a fingerprint,
 face or system PIN, the private key never leaves the user's device, and the server stores
-only the public key. **An account uses one or the other** — once one factor is enabled the
-other is refused.
+only the public key. **Both factors can be enabled at once**, and the sign-in page lets you
+pick either one.
 
 WebAuthn has hard requirements, all of which must hold:
 
@@ -317,8 +318,8 @@ WebAuthn has hard requirements, all of which must hold:
   refused, except on localhost).
 
 When that holds: **Users → Passkeys** (`/users/<name>/passkeys`) → **Add a passkey**, confirm
-the browser prompt, done. A later sign-in asks for the password and then redirects to
-`/login/passkey`, where the browser does the rest.
+the browser prompt, done. A later sign-in asks for the password and then lands on
+`/login/2fa`, which shows the *Use a passkey* button and the code field side by side.
 
 On a **bare IP** the page explains the constraint up front (WebAuthn only accepts a domain
 as the relying party ID and most browsers reject an IP), but *Add a passkey* stays enabled:
@@ -332,8 +333,8 @@ and pin the relying party:
 ```
 
 Challenges live in the session, expire after five minutes and are single use; every
-credential records its signature counter, so replayed assertions are rejected. To switch
-back to TOTP, remove all passkeys first and then enable TOTP (and the other way round).
+credential records its signature counter, so replayed assertions are rejected. The two
+factors can coexist; to keep only one, turn the other off on its own page.
 
 ### First login
 
@@ -578,8 +579,8 @@ normally — nothing has to be pasted into the web UI):
 #### Publishing a version
 
 ```bash
-git tag -a v2.0.2 -m "zerotier-planet-2.0"
-git push origin v2.0.2
+git tag -a v2.0.3 -m "zerotier-planet-2.0"
+git push origin v2.0.3
 ```
 
 The tag runs four jobs:
@@ -600,24 +601,24 @@ The tag runs four jobs:
 Release assets:
 
 ```text
-zerotier-planet-2.0-2.0.2-amd64.tar.gz    # gzipped docker save archive
-zerotier-planet-2.0-2.0.2-arm64.tar.gz    # only when include_arm64 is set
-1panel-app-2.0.2.tar.gz                          # 1Panel app package
+zerotier-planet-2.0-2.0.3-amd64.tar.gz    # gzipped docker save archive
+zerotier-planet-2.0-2.0.3-arm64.tar.gz    # only when include_arm64 is set
+1panel-app-2.0.3.tar.gz                          # 1Panel app package
 1panel-scheduled-update.sh                          # cron helper: update the app package
 SHA256SUMS                                       # checksums for every archive
 SOURCE                                           # upstream commits and build args
-LOAD-amd64-2.0.2.txt                            # load and run instructions
+LOAD-amd64-2.0.3.txt                            # load and run instructions
 ```
 
 On a server, use the archive — no compiler and no registry login required:
 
 ```bash
-docker load < zerotier-planet-2.0-2.0.2-amd64.tar.gz
+docker load < zerotier-planet-2.0-2.0.3-amd64.tar.gz
 docker images | grep zerotier-planet-2.0
 ```
 
 The archive restores the tag
-`docker.io/lonelyx/zerotier-planet:2.0.2`, so the `image:` field in
+`docker.io/lonelyx/zerotier-planet:2.0.3`, so the `image:` field in
 `docker-compose.yml` can point straight at it.
 
 ### Image registries
@@ -633,21 +634,21 @@ multi-arch manifest (`linux/amd64` + `linux/arm64`) and both are **public**, so
 
 ```bash
 # default: Docker Hub
-docker pull docker.io/lonelyx/zerotier-planet:2.0.2
+docker pull docker.io/lonelyx/zerotier-planet:2.0.3
 
 # alternative: GHCR (use it if Docker Hub is unreachable)
-docker pull ghcr.io/ban-sky/zerotier-planet:2.0.2
+docker pull ghcr.io/ban-sky/zerotier-planet:2.0.3
 ```
 
 Tag semantics (identical on both registries):
 
 | Tag | Contents | Updated when |
 | --- | --- | --- |
-| `2.0.2` | the multi-arch image of that release | a `v*` tag is pushed or Release is dispatched |
+| `2.0.3` | the multi-arch image of that release | a `v*` tag is pushed or Release is dispatched |
 | `latest` | the most recent release | same |
 | `sha-<commit>` | build of one `main` commit | push to `main` touching `Dockerfile` / `patch/**` |
 
-Current `2.0.2` manifest (identical on both registries):
+Current `2.0.3` manifest (identical on both registries):
 
 ```text
 MediaType: application/vnd.oci.image.index.v1+json
@@ -690,13 +691,13 @@ Pull and deploy without compiling on the server (either registry, same image):
 
 ```bash
 # GHCR
-docker pull ghcr.io/ban-sky/zerotier-planet:2.0.2
+docker pull ghcr.io/ban-sky/zerotier-planet:2.0.3
 
-sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.2 \
+sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.3 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 
 # Docker Hub (useful when it is the faster registry for you)
-sudo IMAGE=lonelyx/zerotier-planet:2.0.2 \
+sudo IMAGE=lonelyx/zerotier-planet:2.0.3 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 ```
 
@@ -705,7 +706,7 @@ Migrating an old deployment directly from a workflow image:
 ```bash
 sudo ./scripts/migrate-from-upstream.sh \
   --pull \
-  --image docker.io/lonelyx/zerotier-planet:2.0.2 \
+  --image docker.io/lonelyx/zerotier-planet:2.0.3 \
   --target-data /opt/zerotier-planet-2.0/data/zerotier
 ```
 

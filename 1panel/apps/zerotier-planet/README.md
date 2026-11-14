@@ -22,7 +22,7 @@
 - 管理界面与文件服务器默认 HTTPS（自签 ECDSA P-256），planet 下载改走
   `Authorization: Bearer`，密钥不再出现在 URL 里。
 - 界面内置简体中文与英文，默认中文，右上角切换。
-- 两步验证（TOTP）与通行密钥（Passkey / WebAuthn）二选一，各自可独立开关。
+- 两步验证（TOTP）与通行密钥（Passkey / WebAuthn）可同时开启，登录时任选一种。
 - 图标与界面使用 ZeroTier 官方品牌标识。
 
 ## 安装

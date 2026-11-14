@@ -500,13 +500,6 @@ exports.totp_enable_post = async function(req, res) {
     return res.redirect('/users/' + encodeURIComponent(name) + '/totp');
   }
 
-  // Passkeys and TOTP are mutually exclusive; an account carries one.
-  const passkeys = passkeyRecords(loadUser(await get_users(), name));
-  if (passkeys.length) {
-    req.session.error = msg(req, 'msg.passkeyTotpConflict');
-    return res.redirect('/users/' + encodeURIComponent(name) + '/totp');
-  }
-
   const step = totp.verify(challenge.secret, req.body.code);
   if (step === null) {
     return res.status(400).render('totp', {
@@ -746,14 +739,6 @@ exports.passkey_finish_registration = async function(req, name, body) {
     throw err;
   }
 
-  // The two factors are mutually exclusive; refuse to end up with both.
-  const totpState = await exports.totp_status(name);
-  if (totpState.enabled) {
-    const err = new Error('totp-enabled');
-    err.code = 'totp-enabled';
-    throw err;
-  }
-
   const verified = webauthn.verifyRegistration(body, {
     challenge: ceremony.challenge,
     origin: ceremony.origin,
@@ -881,7 +866,6 @@ function passkeyError(req, code) {
     ip: 'msg.passkeyNeedsDomain',
     insecure: 'msg.passkeyNeedsHttps',
     'no-host': 'msg.passkeyNeedsDomain',
-    'totp-enabled': 'msg.passkeyTotpConflict',
     'too-many': 'msg.passkeyLimit',
     'ceremony-expired': 'msg.passkeyExpired',
     'unknown-credential': 'msg.passkeyInvalid',

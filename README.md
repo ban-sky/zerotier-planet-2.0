@@ -6,18 +6,18 @@
 
 > **三步跑起来**
 > 1. 起容器（把 `<公网IP>` 换成你的 IPv4）：
->    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<公网IP> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.2`
+>    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<公网IP> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.3`
 > 2. 浏览器打开 `https://<公网IP>:3443`；自签证书提示不受信任，确认继续即可。
 > 3. 初始密码在容器里：`docker exec zerotier-planet cat /app/config/admin-password`，登录后按提示改密。
 
 > **默认使用 Docker Hub 镜像**
 > 项目名是 `zerotier-planet-2.0`（原名 `docker-zerotier-planet-2.0`）；镜像同时发布到
 > `docker.io/lonelyx/zerotier-planet`（**默认**）与 `ghcr.io/ban-sky/zerotier-planet`（备选），
-> tag 与版本号一致、**不带 `v`**（git tag 与 Release 仍是 `v2.0.2`）。旧仓库地址与旧镜像名继续可用。
+> tag 与版本号一致、**不带 `v`**（git tag 与 Release 仍是 `v2.0.3`）。旧仓库地址与旧镜像名继续可用。
 
 > **版本号规则**
 > 从 `2.0.0` 起重编：`2.<功能>.<修复>` —— 首位固定为 2（2.0 维护分支），中间位用于功能更新
-> （如 `2.1.0`），末位用于小版本与 bug 修复（如 `2.0.2`）。
+> （如 `2.1.0`），末位用于小版本与 bug 修复（如 `2.0.3`）。
 
 > **许可证提醒（重要）**
 > ZeroTier 1.16 起把 controller 移到了 `nonfree/`，采用 *ZeroTier SOURCE-AVAILABLE
@@ -150,10 +150,10 @@ CSP 只允许 `'self'`，成员授权与桥接使用显式下拉框。截图取�
 - **1Panel 计划任务脚本**：`scripts/1panel-scheduled-update.sh` 可挂到面板计划任务，
   按周期更新应用商店包并重启已安装实例。
 
-### 部署集成（2.0.2）
+### 部署集成（2.0.3）
 
 - 附带 1Panel 应用包（`1panel/apps/zerotier-planet`）与安装脚本，可在面板里填表安装、
-  可视化启停与升级；镜像 tag 固定版本号（如 `2.0.2`，不带 `v`），方便面板比对版本。
+  可视化启停与升级；镜像 tag 固定版本号（如 `2.0.3`，不带 `v`），方便面板比对版本。
 - 应用包、`docker save` 归档与计划任务脚本一起发布在 Release，`SHA256SUMS` 覆盖全部附件。
 
 ## 快速开始
@@ -187,7 +187,7 @@ cd zerotier-planet-2.0
 > **不想在服务器上编译？** 直接下载
 > [Releases](https://github.com/ban-sky/zerotier-planet-2.0/releases) 里的
 > `zerotier-planet-2.0-<版本>-amd64.tar.gz`，`docker load` 后即可运行；
-> 也可以直接 `docker pull docker.io/lonelyx/zerotier-planet:2.0.2`。
+> 也可以直接 `docker pull docker.io/lonelyx/zerotier-planet:2.0.3`。
 
 ### 方式二：Compose
 
@@ -213,7 +213,7 @@ git clone https://github.com/ban-sky/zerotier-planet-2.0.git
 cd zerotier-planet-2.0 && sudo ./scripts/install-1panel-app.sh
 
 # 或用 Release 附件直接解包
-sudo tar -xzf 1panel-app-2.0.2.tar.gz -C /opt/1panel/resource/apps/local
+sudo tar -xzf 1panel-app-2.0.3.tar.gz -C /opt/1panel/resource/apps/local
 ```
 
 装完在面板里 **应用商店 → 更新应用列表**，搜索 `ZeroTier Planet` 安装即可。要填的字段
@@ -224,7 +224,7 @@ sudo tar -xzf 1panel-app-2.0.2.tar.gz -C /opt/1panel/resource/apps/local
 - 初始密码：应用「终端」里 `cat /app/config/admin-password`，或宿主机
   `sudo find /opt/1panel/apps -maxdepth 6 -name admin-password`。
 - 社区版商店只扫描 `/opt/1panel/resource/apps/local/`；专业版的「自定义应用仓库」也可以
-  直接指向本仓库的 `1panel/apps` 目录。应用包里的镜像 tag 固定为 `2.0.2`（不带 `v`、
+  直接指向本仓库的 `1panel/apps` 目录。应用包里的镜像 tag 固定为 `2.0.3`（不带 `v`、
   不用 `latest`），面板才能正确判断版本。
 
 #### 计划任务：自动跟进最新版本
@@ -264,7 +264,8 @@ curl -fsSL https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/sc
    （Google Authenticator、1Password、Bitwarden 等）；
 3. 输入应用显示的 6 位代码完成绑定，页面随后**只显示一次** 10 个备用码，请立即保存。
 
-开启之后登录分成两步：密码正确只会跳到 `/login/2fa`，输入动态码或备用码后才建立会话。
+开启之后登录分成两步：密码正确只会跳到 `/login/2fa`，在那里输入动态码或备用码后才建立会话
+（同一页面也会列出通行密钥，如果这个账号也开了的话）。
 同一个动态码用过一次即失效（按账号记录 `lastStep`，防止在 30 秒窗口内被重放），备用码
 用一次即作废。关闭两步验证需要**当前密码 + 一次有效代码**，所以拿到会话的人无法悄悄关掉它。
 
@@ -277,7 +278,7 @@ curl -fsSL https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/sc
 ### 通行密钥（Passkey / WebAuthn）
 
 除了 TOTP，还可以用**通行密钥**作为第二因素：浏览器调用指纹、面容或系统 PIN，私钥留在
-用户设备上，服务器只保存公钥。**两者只能选一个**（同一账号启用其一后，另一个会被拒绝）。
+用户设备上，服务器只保存公钥。两种方式**可以同时开启**，登录时由你选用其中一种。
 
 前提条件是 WebAuthn 的硬性要求，缺一不可：
 
@@ -285,7 +286,8 @@ curl -fsSL https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/sc
 - HTTPS 且证书受浏览器信任（自签证书会被拒绝，localhost 除外）。
 
 满足条件时：**用户 → 通行密钥**（`/users/<用户名>/passkeys`）→ **添加通行密钥**，
-浏览器弹窗确认后即绑定。之后登录在密码正确后会跳到 `/login/passkey`，由浏览器完成验证。
+浏览器弹窗确认后即绑定。之后登录在密码正确后会跳到 `/login/2fa`：页面上同时给出
+「使用通行密钥」按钮和动态码输入框，选其中一种即可。
 
 部署在**裸 IP** 上时，页面会先给出提示（WebAuthn 规范只接受域名作为依赖方标识，
 多数浏览器会拒绝 IP），但「添加通行密钥」按钮仍然可用——按下去会真的向浏览器发起注册，
@@ -298,8 +300,8 @@ TLS 并固定依赖方信息：
 ```
 
 挑战值存在会话里、5 分钟过期、只能用一次；每个凭据记录签名计数器，重放的断言会被拒绝。
-想从通行密钥切回 TOTP：先在通行密钥页面删掉全部凭据，再到两步验证页面开启 TOTP
-（反之亦然）。
+两种因素可以并存；只想留一种时，到对应页面关掉另一种即可（删除全部通行密钥，
+或在两步验证页面关闭 TOTP）。
 
 ### 首次登录
 
@@ -531,8 +533,8 @@ node tests/webauthn.test.js
 #### 发布一个版本
 
 ```bash
-git tag -a v2.0.2 -m "zerotier-planet-2.0"
-git push origin v2.0.2
+git tag -a v2.0.3 -m "zerotier-planet-2.0"
+git push origin v2.0.3
 ```
 
 推送标签后，Actions 会依次执行：
@@ -550,23 +552,23 @@ git push origin v2.0.2
 Release 附件：
 
 ```text
-zerotier-planet-2.0-2.0.2-amd64.tar.gz    # docker save 归档（gzip）
-zerotier-planet-2.0-2.0.2-arm64.tar.gz    # 仅当勾选 include_arm64
-1panel-app-2.0.2.tar.gz                          # 1Panel 本地应用包
+zerotier-planet-2.0-2.0.3-amd64.tar.gz    # docker save 归档（gzip）
+zerotier-planet-2.0-2.0.3-arm64.tar.gz    # 仅当勾选 include_arm64
+1panel-app-2.0.3.tar.gz                          # 1Panel 本地应用包
 1panel-scheduled-update.sh                          # 计划任务：自动更新应用包
 SHA256SUMS                                       # 每个归档的校验和
 SOURCE                                           # 上游 commit 与构建参数
-LOAD-amd64-2.0.2.txt                            # 加载与运行说明
+LOAD-amd64-2.0.3.txt                            # 加载与运行说明
 ```
 
 在服务器上使用归档（无需自己编译、无需 registry 登录）：
 
 ```bash
-docker load < zerotier-planet-2.0-2.0.2-amd64.tar.gz
+docker load < zerotier-planet-2.0-2.0.3-amd64.tar.gz
 docker images | grep zerotier-planet-2.0
 ```
 
-归档里保存的 tag 是 `docker.io/lonelyx/zerotier-planet:2.0.2`，可以直接用
+归档里保存的 tag 是 `docker.io/lonelyx/zerotier-planet:2.0.3`，可以直接用
 `docker-compose.yml` 里的 `image:` 字段引用（换一台机器时也可以 `docker tag` 成同一个名字）。
 
 ### 镜像地址
@@ -581,23 +583,23 @@ manifest，`linux/amd64` + `linux/arm64`），都是**公开**的，`docker pull
 
 ```bash
 # 默认：Docker Hub
-docker pull docker.io/lonelyx/zerotier-planet:2.0.2
+docker pull docker.io/lonelyx/zerotier-planet:2.0.3
 
 # 备选：GHCR（拉不动 Docker Hub 时用）
-docker pull ghcr.io/ban-sky/zerotier-planet:2.0.2
+docker pull ghcr.io/ban-sky/zerotier-planet:2.0.3
 ```
 
-tag 含义（两个 registry 相同）。**GitHub Release 与 git tag 带 `v`（`v2.0.2`），镜像 tag 不带 `v`（`2.0.2`）。**
+tag 含义（两个 registry 相同）。**GitHub Release 与 git tag 带 `v`（`v2.0.3`），镜像 tag 不带 `v`（`2.0.3`）。**
 
 
 
 | tag | 内容 | 何时更新 |
 | --- | --- | --- |
-| `2.0.2` | 该版本发布时的多架构镜像 | 打 `v*` tag 或手动 dispatch Release |
+| `2.0.3` | 该版本发布时的多架构镜像 | 打 `v*` tag 或手动 dispatch Release |
 | `latest` | 最近一次发布 | 同上 |
 | `sha-<commit>` | 某个 `main` 提交的构建 | push 到 `main` 且改动 `Dockerfile` / `patch/**` |
 
-当前 `2.0.2` 的 manifest（两边一致）：
+当前 `2.0.3` 的 manifest（两边一致）：
 
 ```text
 MediaType: application/vnd.oci.image.index.v1+json
@@ -623,13 +625,13 @@ echo "$CR_PAT" | docker login ghcr.io -u ban-sky --password-stdin
 
 ```bash
 # 默认：Docker Hub
-docker pull docker.io/lonelyx/zerotier-planet:2.0.2
+docker pull docker.io/lonelyx/zerotier-planet:2.0.3
 
-sudo IMAGE=docker.io/lonelyx/zerotier-planet:2.0.2 \
+sudo IMAGE=docker.io/lonelyx/zerotier-planet:2.0.3 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 
 # 备选：GHCR
-sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.2 \
+sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.3 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 ```
 
@@ -638,7 +640,7 @@ sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.2 \
 ```bash
 sudo ./scripts/migrate-from-upstream.sh \
   --pull \
-  --image docker.io/lonelyx/zerotier-planet:2.0.2 \
+  --image docker.io/lonelyx/zerotier-planet:2.0.3 \
   --target-data /opt/zerotier-planet-2.0/data/zerotier
 ```
 
