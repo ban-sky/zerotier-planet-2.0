@@ -33,7 +33,7 @@ block users_content
     else
       p.meta-line= t('passkey.none')
 
-    if available && !totpEnabled
+    if available
       hr.rule
       .alert.alert-error#passkey-error(hidden)
       button.btn.btn-primary#passkey-start(type='button', data-begin=base + '/begin', data-finish=base + '/finish', data-mode='register', data-label=t('passkey.defaultLabel'))= t('passkey.add')
