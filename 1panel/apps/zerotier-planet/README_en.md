@@ -56,10 +56,26 @@ generate a fresh one (this replaces the existing admin password).
 
 ## Automatic updates (cron job)
 
-One line, run it directly or paste it into **Cron job → Shell script**:
+One block, run it directly or paste it into **Cron job → Shell script**. It walks
+jsDelivr, githack, ghfast.top and gh-proxy.com before falling back to GitHub, so a
+mainland server does not stall on `raw.githubusercontent.com`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/scripts/1panel-scheduled-update.sh | sudo bash -s -- --quiet
+ok=0
+for u in \
+  "https://cdn.jsdelivr.net/gh/ban-sky/zerotier-planet-2.0@main/scripts/1panel-scheduled-update.sh" \
+  "https://fastly.jsdelivr.net/gh/ban-sky/zerotier-planet-2.0@main/scripts/1panel-scheduled-update.sh" \
+  "https://rawcdn.githack.com/ban-sky/zerotier-planet-2.0/main/scripts/1panel-scheduled-update.sh" \
+  "https://ghfast.top/https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/scripts/1panel-scheduled-update.sh" \
+  "https://gh-proxy.com/https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/scripts/1panel-scheduled-update.sh" \
+  "https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/scripts/1panel-scheduled-update.sh"
+do
+  curl -fsSL --connect-timeout 8 --max-time 60 "$u" -o /tmp/ztp-update.sh || continue
+  sudo bash /tmp/ztp-update.sh --quiet
+  ok=$?
+  break
+done
+[ "$ok" = 0 ] || echo "update failed: every mirror is unreachable" >&2
 ```
 
 Manual control (the script also ships as a release asset):

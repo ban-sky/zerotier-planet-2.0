@@ -55,10 +55,25 @@
 ## 自动更新（计划任务）
 
 一行命令即可把最新版本同步进本地商店，复制直接执行，或贴进
-**计划任务 → Shell 脚本** 定时跑：
+**计划任务 → Shell 脚本** 定时跑。下面这段会依次试 jsDelivr、githack、ghfast.top、
+gh-proxy.com，最后才直连 GitHub，国内机器不会卡在 raw.githubusercontent.com：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/scripts/1panel-scheduled-update.sh | sudo bash -s -- --quiet
+ok=0
+for u in \
+  "https://cdn.jsdelivr.net/gh/ban-sky/zerotier-planet-2.0@main/scripts/1panel-scheduled-update.sh" \
+  "https://fastly.jsdelivr.net/gh/ban-sky/zerotier-planet-2.0@main/scripts/1panel-scheduled-update.sh" \
+  "https://rawcdn.githack.com/ban-sky/zerotier-planet-2.0/main/scripts/1panel-scheduled-update.sh" \
+  "https://ghfast.top/https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/scripts/1panel-scheduled-update.sh" \
+  "https://gh-proxy.com/https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/scripts/1panel-scheduled-update.sh" \
+  "https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/scripts/1panel-scheduled-update.sh"
+do
+  curl -fsSL --connect-timeout 8 --max-time 60 "$u" -o /tmp/ztp-update.sh || continue
+  sudo bash /tmp/ztp-update.sh --quiet
+  ok=$?
+  break
+done
+[ "$ok" = 0 ] || echo "更新失败：所有下载地址都不通" >&2
 ```
 
 需要手动控制时（脚本也随 Release 附件发布）：

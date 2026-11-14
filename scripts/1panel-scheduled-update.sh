@@ -37,13 +37,18 @@ IMAGE="${IMAGE:-docker.io/lonelyx/zerotier-planet}"
 DEFAULT_PANEL_DIR=/opt/1panel
 DEFAULT_BRANCH=main
 
-# jsDelivr serves repository files from GitHub's CDN and is reachable from
-# mainland China; the sibling hosts are the usual fallbacks.
-CDN_BASES=(
-  "https://cdn.jsdelivr.net/gh"
-  "https://fastly.jsdelivr.net/gh"
-  "https://gcore.jsdelivr.net/gh"
-  "https://testingcf.jsdelivr.net/gh"
+# Repository mirrors that serve plain files. Each entry is "<kind> <base>",
+# because the two families use different URL shapes:
+#   jsdelivr  <base>/<owner>/<repo>@<ref>/<path>   (e.g. cdn.jsdelivr.net/gh)
+#   raw       <base>/<owner>/<repo>/<ref>/<path>   (e.g. raw.gitmirror.com)
+# jsDelivr has several PoPs that stay reachable from mainland China; the raw
+# mirrors cover the case where the jsDelivr domain itself is unavailable.
+CDN_MIRRORS=(
+  "jsdelivr https://cdn.jsdelivr.net/gh"
+  "jsdelivr https://fastly.jsdelivr.net/gh"
+  "jsdelivr https://gcore.jsdelivr.net/gh"
+  "jsdelivr https://testingcf.jsdelivr.net/gh"
+  "raw https://rawcdn.githack.com"
 )
 
 # ghproxy-style front ends for github.com. They are only used once the direct
@@ -275,21 +280,28 @@ stage_cdn() { # needs $tag, $version, $tmp
     "$version/data.yml"
     "$version/docker-compose.yml"
   )
-  local cdn f ok
-  for cdn in "${CDN_BASES[@]}"; do
+  local entry kind base url f ok
+  for entry in "${CDN_MIRRORS[@]}"; do
+    kind="${entry%% *}"
+    base="${entry#* }"
     rm -rf "$tmp/cdn"
     mkdir -p "$tmp/cdn"
     ok=1
     for f in "${files[@]}"; do
       mkdir -p "$tmp/cdn/$(dirname "$f")"
-      if ! curl_get "$cdn/$REPO@$tag/1panel/apps/$APP_KEY/$f" "$tmp/cdn/$f"; then
+      if [ "$kind" = "jsdelivr" ]; then
+        url="$base/$REPO@$tag/1panel/apps/$APP_KEY/$f"
+      else
+        url="$base/$REPO/$tag/1panel/apps/$APP_KEY/$f"
+      fi
+      if ! curl_get "$url" "$tmp/cdn/$f"; then
         ok=0
         break
       fi
     done
     if [ "$ok" -eq 1 ]; then
       staged="$tmp/cdn"
-      log "（经 CDN $cdn）"
+      log "（经镜像 $base）"
       return 0
     fi
   done
@@ -361,12 +373,12 @@ case "$source_mode" in
     stage_release || die "release 下载失败：可加 --mirror 指定镜像，或用 --source cdn / --source dir"
     ;;
   cdn)
-    stage_cdn || die "jsDelivr 下载失败：可用 --source dir 从本地目录安装"
+    stage_cdn || die "镜像下载失败：可用 --source dir 从本地目录安装"
     ;;
   auto)
     if ! stage_release; then
       warn "GitHub Release 下载失败，改用 jsDelivr CDN 拼装应用包"
-      stage_cdn || die "Release 与 jsDelivr 都失败：请检查网络，或用 --source dir 从本地目录安装"
+      stage_cdn || die "Release 与镜像都失败：请检查网络，或用 --source dir 从本地目录安装"
     fi
     ;;
   branch)
