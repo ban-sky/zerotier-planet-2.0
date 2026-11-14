@@ -88,6 +88,15 @@ sudo ./1panel-scheduled-update.sh --mirror https://ghfast.top/ --quiet
 sudo ./1panel-scheduled-update.sh --no-restart --quiet     # package only
 ```
 
+### Choosing a version
+
+The package keeps the **five most recent versions** (`2.0.1`–`2.0.5`), so the version dropdown
+in the panel's install / upgrade dialog can roll back to an older build. Each directory maps to
+the image tag of the same name.
+
+The cron helper keeps five as well (`--keep-versions N`, `0` for all) and only removes the
+directories beyond that; installed data is never touched.
+
 Following [okxlin/appstore](https://github.com/okxlin/appstore), the script syncs the app
 package into `/opt/1panel/resource/apps/local/`; refresh the app store to see the new
 version, and the installed instance is restarted by default. Every request gives up after

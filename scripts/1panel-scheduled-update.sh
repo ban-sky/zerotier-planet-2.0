@@ -69,6 +69,7 @@ dry_run=0
 quiet=0
 restart=1
 keep_downloads=0
+keep_versions=5
 
 log() { [ "$quiet" -eq 1 ] || printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >&2; }
 warn() { printf '%s WARN %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >&2; }
@@ -107,6 +108,11 @@ Options:
                      $PANEL_DIR).
   --no-restart       Only refresh the app store package; leave the running
                      container untouched.
+  --keep-versions <n>
+                     How many version directories to keep in the store package
+                     (default: 5). 1Panel lists every directory it finds, so the
+                     last few releases stay selectable when you need to roll
+                     back. 0 keeps them all.
   --keep-downloads   Leave the downloaded archive in the temp directory.
   --dry-run          Report what would change and exit without touching anything.
   --quiet            Only log warnings and errors (cron friendly).
@@ -136,6 +142,7 @@ while [ "$#" -gt 0 ]; do
     --mirror) [ "$#" -ge 2 ] || die "--mirror 需要一个值"; mirrors+=("$2"); shift 2 ;;
     --panel-dir) [ "$#" -ge 2 ] || die "--panel-dir 需要一个值"; panel_dir="$2"; shift 2 ;;
     --no-restart) restart=0; shift ;;
+    --keep-versions) [ "$#" -ge 2 ] || die "--keep-versions 需要一个值"; keep_versions="$2"; shift 2 ;;
     --keep-downloads) keep_downloads=1; shift ;;
     --dry-run) dry_run=1; shift ;;
     --quiet) quiet=1; shift ;;
@@ -147,6 +154,10 @@ done
 case "$source_mode" in
   auto|release|cdn|branch|dir) ;;
   *) die "--source 只能是 auto、release、cdn、branch 或 dir，收到：$source_mode" ;;
+esac
+
+case "$keep_versions" in
+  ''|*[!0-9]*) die "--keep-versions 需要一个非负整数，收到：$keep_versions" ;;
 esac
 
 # --tag pins a release, so keep the mode consistent with it.
@@ -340,6 +351,24 @@ trap cleanup EXIT
 installed="$(installed_version)"
 
 # ---------------------------------------------------------------------------
+prune_versions() {
+  [ "$keep_versions" -gt 0 ] || return 0
+  [ -d "$target" ] || return 0
+  local dirs=() doomed=() d i
+  shopt -s nullglob
+  dirs=("$target"/[0-9]*)
+  shopt -u nullglob
+  [ "${#dirs[@]}" -gt "$keep_versions" ] || return 0
+  mapfile -t dirs < <(printf '%s\n' "${dirs[@]}" | sort -V)
+  for ((i = 0; i < ${#dirs[@]} - keep_versions; i++)); do
+    doomed+=("${dirs[$i]}")
+  done
+  log "保留最近 $keep_versions 个版本，清理：${doomed[*]##*/}"
+  for d in "${doomed[@]}"; do
+    rm -rf -- "$d"
+  done
+}
+
 # Resolve the version to install
 # ---------------------------------------------------------------------------
 if [ "$source_mode" != branch ] && [ "$source_mode" != dir ]; then
@@ -354,6 +383,7 @@ if [ "$source_mode" != branch ] && [ "$source_mode" != dir ]; then
   version="${tag#v}"
 
   if [ -n "$installed" ] && not_older "$installed" "$version"; then
+    prune_versions
     log "已是 $installed（最新 $version），无需更新"
     exit 0
   fi
@@ -361,6 +391,7 @@ if [ "$source_mode" != branch ] && [ "$source_mode" != dir ]; then
   if [ "$dry_run" -eq 1 ]; then
     log "[dry-run] 将安装 $tag 到 $target（当前：${installed:-未安装}；来源：$source_mode）"
     if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会重启 $apps_root 下的应用"; fi
+    if [ "$keep_versions" -gt 0 ]; then log "[dry-run] 应用包内保留最近 $keep_versions 个版本目录"; fi
     exit 0
   fi
 fi
@@ -388,12 +419,14 @@ case "$source_mode" in
     tag="$version"
 
     if [ -n "$installed" ] && not_older "$installed" "$version"; then
+      prune_versions
       log "已是 $installed（分支最新 $version），无需更新"
       exit 0
     fi
     if [ "$dry_run" -eq 1 ]; then
       log "[dry-run] 将从分支 $branch 安装 $version 到 $target（当前：${installed:-未安装}）"
       if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会重启 $apps_root 下的应用"; fi
+    if [ "$keep_versions" -gt 0 ]; then log "[dry-run] 应用包内保留最近 $keep_versions 个版本目录"; fi
       exit 0
     fi
     ;;
@@ -404,12 +437,14 @@ case "$source_mode" in
     tag="v$version"
 
     if [ -n "$installed" ] && not_older "$installed" "$version"; then
+      prune_versions
       log "已是 $installed（本地最新 $version），无需更新"
       exit 0
     fi
     if [ "$dry_run" -eq 1 ]; then
       log "[dry-run] 将从 $from_dir 安装 $version 到 $target（当前：${installed:-未安装}）"
       if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会重启 $apps_root 下的应用"; fi
+    if [ "$keep_versions" -gt 0 ]; then log "[dry-run] 应用包内保留最近 $keep_versions 个版本目录"; fi
       exit 0
     fi
     ;;
@@ -420,28 +455,21 @@ esac
 [ -f "$staged/$version/docker-compose.yml" ] || die "应用包结构异常：缺少 $version/docker-compose.yml"
 
 # ---------------------------------------------------------------------------
-# Swap the store package (old copy moved aside, never deleted in place)
+# Merge the store package. Version directories that are already there are kept,
+# so 1Panel keeps offering the previous releases in its version dropdown; only
+# the oldest ones beyond --keep-versions are dropped.
 # ---------------------------------------------------------------------------
 mkdir -p "$store_root"
-if [ -d "$target" ]; then
-  backup="${target}.bak.$(date +%Y%m%d%H%M%S)"
-  log "备份旧应用包 -> $backup"
-  mv "$target" "$backup"
-fi
 log "安装应用包 $version -> $target"
-cp -a "$staged" "$target"
-chmod -R a+rX "$target"
-
-# Keep only the newest five backups so a cron job cannot fill the disk.
-shopt -s nullglob
-backups=("${target}".bak.*)
-shopt -u nullglob
-if [ "${#backups[@]}" -gt 5 ]; then
-  printf '%s\n' "${backups[@]}" | sort -r | tail -n +6 | while read -r old; do
-    [ -n "$old" ] || continue
-    rm -rf -- "$old"
-  done
+if [ -d "$target" ]; then
+  # Coping over an existing tree merges it: the shared files (data.yml, logo,
+  # READMEs) are refreshed and <version>/ is added next to the older ones.
+  cp -a "$staged"/. "$target"/
+else
+  cp -a "$staged" "$target"
 fi
+chmod -R a+rX "$target"
+prune_versions
 
 # ---------------------------------------------------------------------------
 # Restart the running app on the new image

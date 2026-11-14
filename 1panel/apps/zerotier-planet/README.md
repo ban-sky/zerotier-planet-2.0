@@ -86,6 +86,14 @@ sudo ./1panel-scheduled-update.sh --mirror https://ghfast.top/ --quiet
 sudo ./1panel-scheduled-update.sh --no-restart --quiet     # 只更新应用包
 ```
 
+### 版本选择
+
+应用包里保留**最近 5 个版本**的目录（当前 `2.0.1`–`2.0.5`），面板「安装 / 升级」的版本
+下拉里可以直接选旧版本回退，每个版本目录对应的镜像 tag 与目录名一致。
+
+计划任务脚本同步时也默认保留 5 个（`--keep-versions N` 可改，`0` 表示全部保留），
+只清理更老的目录，不会动已安装实例的数据。
+
 脚本参考 [okxlin/appstore](https://github.com/okxlin/appstore) 的做法，把应用包同步到
 `/opt/1panel/resource/apps/local/`，面板刷新后可看到新版本；默认同时重启已安装实例。
 国内网络下每个请求最多等 8 秒就换通道（jsDelivr / 镜像），不会一直重试。完整参数见
