@@ -13,29 +13,6 @@
 > 2.0.0 之前的构建曾用 `2.1.0`–`2.6.0` 编号，已统一重编：那些内容全部并入本 2.0.0，
 > 对应的旧 Release 与 tag 已删除，不再提供下载。
 
-## [2.0.3] - 2026-11-14
-
-小版本：镜像可选同步到腾讯云 TCR，方便国内服务器拉取。
-
-### 新增
-
-- 发布流程新增可选的**腾讯云 TCR** 镜像同步：配置 `TCR_REGISTRY`、`TCR_NAMESPACE`、
-  `TCR_USERNAME`、`TCR_PASSWORD` 四个 secret 后，GHCR 与 Docker Hub 之外再推一份到 TCR；
-  未配置时该步骤自动跳过。
-- 同步优先用 `imagetools create` 复制 manifest（digest 与 GHCR 一致、不重新构建）；
-  TCR 拒绝跨仓库复制时自动回退为多架构重新构建后推送。
-- README 与 1Panel 应用文档新增 TCR 配置说明（个人版 `ccr.ccs.tencentyun.com`、
-  企业版 `<实例名>.tencentcloudcr.com`，以及拉取与 1Panel 用法）。
-
-### 文档
-
-- 修正 Docker Hub 仓库名示例（`zerotier-planet`），去掉早期残留的 `-2.0` 后缀。
-
-### 镜像
-
-- `docker.io/lonelyx/zerotier-planet:2.0.3`、`ghcr.io/ban-sky/zerotier-planet:2.0.3`
-  （配置 TCR 后另加 `<TCR>/<命名空间>/zerotier-planet:2.0.3`）。
-
 ## [2.0.2] - 2026-11-14
 
 小版本：登录页与输入提示优化，通行密钥在 IP 访问下可尝试绑定。

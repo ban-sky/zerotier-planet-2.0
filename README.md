@@ -6,18 +6,18 @@
 
 > **三步跑起来**
 > 1. 起容器（把 `<公网IP>` 换成你的 IPv4）：
->    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<公网IP> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.3`
+>    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<公网IP> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.2`
 > 2. 浏览器打开 `https://<公网IP>:3443`；自签证书提示不受信任，确认继续即可。
 > 3. 初始密码在容器里：`docker exec zerotier-planet cat /app/config/admin-password`，登录后按提示改密。
 
 > **默认使用 Docker Hub 镜像**
 > 项目名是 `zerotier-planet-2.0`（原名 `docker-zerotier-planet-2.0`）；镜像同时发布到
 > `docker.io/lonelyx/zerotier-planet`（**默认**）与 `ghcr.io/ban-sky/zerotier-planet`（备选），
-> tag 与版本号一致、**不带 `v`**（git tag 与 Release 仍是 `v2.0.3`）。旧仓库地址与旧镜像名继续可用。
+> tag 与版本号一致、**不带 `v`**（git tag 与 Release 仍是 `v2.0.2`）。旧仓库地址与旧镜像名继续可用。
 
 > **版本号规则**
 > 从 `2.0.0` 起重编：`2.<功能>.<修复>` —— 首位固定为 2（2.0 维护分支），中间位用于功能更新
-> （如 `2.1.0`），末位用于小版本与 bug 修复（如 `2.0.3`）。
+> （如 `2.1.0`），末位用于小版本与 bug 修复（如 `2.0.2`）。
 
 > **许可证提醒（重要）**
 > ZeroTier 1.16 起把 controller 移到了 `nonfree/`，采用 *ZeroTier SOURCE-AVAILABLE
@@ -150,10 +150,10 @@ CSP 只允许 `'self'`，成员授权与桥接使用显式下拉框。截图取�
 - **1Panel 计划任务脚本**：`scripts/1panel-scheduled-update.sh` 可挂到面板计划任务，
   按周期更新应用商店包并重启已安装实例。
 
-### 部署集成（2.0.3）
+### 部署集成（2.0.2）
 
 - 附带 1Panel 应用包（`1panel/apps/zerotier-planet`）与安装脚本，可在面板里填表安装、
-  可视化启停与升级；镜像 tag 固定版本号（如 `2.0.3`，不带 `v`），方便面板比对版本。
+  可视化启停与升级；镜像 tag 固定版本号（如 `2.0.2`，不带 `v`），方便面板比对版本。
 - 应用包、`docker save` 归档与计划任务脚本一起发布在 Release，`SHA256SUMS` 覆盖全部附件。
 
 ## 快速开始
@@ -187,7 +187,7 @@ cd zerotier-planet-2.0
 > **不想在服务器上编译？** 直接下载
 > [Releases](https://github.com/ban-sky/zerotier-planet-2.0/releases) 里的
 > `zerotier-planet-2.0-<版本>-amd64.tar.gz`，`docker load` 后即可运行；
-> 也可以直接 `docker pull docker.io/lonelyx/zerotier-planet:2.0.3`。
+> 也可以直接 `docker pull docker.io/lonelyx/zerotier-planet:2.0.2`。
 
 ### 方式二：Compose
 
@@ -213,7 +213,7 @@ git clone https://github.com/ban-sky/zerotier-planet-2.0.git
 cd zerotier-planet-2.0 && sudo ./scripts/install-1panel-app.sh
 
 # 或用 Release 附件直接解包
-sudo tar -xzf 1panel-app-2.0.3.tar.gz -C /opt/1panel/resource/apps/local
+sudo tar -xzf 1panel-app-2.0.2.tar.gz -C /opt/1panel/resource/apps/local
 ```
 
 装完在面板里 **应用商店 → 更新应用列表**，搜索 `ZeroTier Planet` 安装即可。要填的字段
@@ -224,7 +224,7 @@ sudo tar -xzf 1panel-app-2.0.3.tar.gz -C /opt/1panel/resource/apps/local
 - 初始密码：应用「终端」里 `cat /app/config/admin-password`，或宿主机
   `sudo find /opt/1panel/apps -maxdepth 6 -name admin-password`。
 - 社区版商店只扫描 `/opt/1panel/resource/apps/local/`；专业版的「自定义应用仓库」也可以
-  直接指向本仓库的 `1panel/apps` 目录。应用包里的镜像 tag 固定为 `2.0.3`（不带 `v`、
+  直接指向本仓库的 `1panel/apps` 目录。应用包里的镜像 tag 固定为 `2.0.2`（不带 `v`、
   不用 `latest`），面板才能正确判断版本。
 
 #### 计划任务：自动跟进最新版本
@@ -531,8 +531,8 @@ node tests/webauthn.test.js
 #### 发布一个版本
 
 ```bash
-git tag -a v2.0.3 -m "zerotier-planet-2.0"
-git push origin v2.0.3
+git tag -a v2.0.2 -m "zerotier-planet-2.0"
+git push origin v2.0.2
 ```
 
 推送标签后，Actions 会依次执行：
@@ -550,23 +550,23 @@ git push origin v2.0.3
 Release 附件：
 
 ```text
-zerotier-planet-2.0-2.0.3-amd64.tar.gz    # docker save 归档（gzip）
-zerotier-planet-2.0-2.0.3-arm64.tar.gz    # 仅当勾选 include_arm64
-1panel-app-2.0.3.tar.gz                          # 1Panel 本地应用包
+zerotier-planet-2.0-2.0.2-amd64.tar.gz    # docker save 归档（gzip）
+zerotier-planet-2.0-2.0.2-arm64.tar.gz    # 仅当勾选 include_arm64
+1panel-app-2.0.2.tar.gz                          # 1Panel 本地应用包
 1panel-scheduled-update.sh                          # 计划任务：自动更新应用包
 SHA256SUMS                                       # 每个归档的校验和
 SOURCE                                           # 上游 commit 与构建参数
-LOAD-amd64-2.0.3.txt                            # 加载与运行说明
+LOAD-amd64-2.0.2.txt                            # 加载与运行说明
 ```
 
 在服务器上使用归档（无需自己编译、无需 registry 登录）：
 
 ```bash
-docker load < zerotier-planet-2.0-2.0.3-amd64.tar.gz
+docker load < zerotier-planet-2.0-2.0.2-amd64.tar.gz
 docker images | grep zerotier-planet-2.0
 ```
 
-归档里保存的 tag 是 `docker.io/lonelyx/zerotier-planet:2.0.3`，可以直接用
+归档里保存的 tag 是 `docker.io/lonelyx/zerotier-planet:2.0.2`，可以直接用
 `docker-compose.yml` 里的 `image:` 字段引用（换一台机器时也可以 `docker tag` 成同一个名字）。
 
 ### 镜像地址
@@ -581,23 +581,23 @@ manifest，`linux/amd64` + `linux/arm64`），都是**公开**的，`docker pull
 
 ```bash
 # 默认：Docker Hub
-docker pull docker.io/lonelyx/zerotier-planet:2.0.3
+docker pull docker.io/lonelyx/zerotier-planet:2.0.2
 
 # 备选：GHCR（拉不动 Docker Hub 时用）
-docker pull ghcr.io/ban-sky/zerotier-planet:2.0.3
+docker pull ghcr.io/ban-sky/zerotier-planet:2.0.2
 ```
 
-tag 含义（两个 registry 相同）。**GitHub Release 与 git tag 带 `v`（`v2.0.3`），镜像 tag 不带 `v`（`2.0.3`）。**
+tag 含义（两个 registry 相同）。**GitHub Release 与 git tag 带 `v`（`v2.0.2`），镜像 tag 不带 `v`（`2.0.2`）。**
 
 
 
 | tag | 内容 | 何时更新 |
 | --- | --- | --- |
-| `2.0.3` | 该版本发布时的多架构镜像 | 打 `v*` tag 或手动 dispatch Release |
+| `2.0.2` | 该版本发布时的多架构镜像 | 打 `v*` tag 或手动 dispatch Release |
 | `latest` | 最近一次发布 | 同上 |
 | `sha-<commit>` | 某个 `main` 提交的构建 | push 到 `main` 且改动 `Dockerfile` / `patch/**` |
 
-当前 `2.0.3` 的 manifest（两边一致）：
+当前 `2.0.2` 的 manifest（两边一致）：
 
 ```text
 MediaType: application/vnd.oci.image.index.v1+json
@@ -623,13 +623,13 @@ echo "$CR_PAT" | docker login ghcr.io -u ban-sky --password-stdin
 
 ```bash
 # 默认：Docker Hub
-docker pull docker.io/lonelyx/zerotier-planet:2.0.3
+docker pull docker.io/lonelyx/zerotier-planet:2.0.2
 
-sudo IMAGE=docker.io/lonelyx/zerotier-planet:2.0.3 \
+sudo IMAGE=docker.io/lonelyx/zerotier-planet:2.0.2 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 
 # 备选：GHCR
-sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.3 \
+sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.2 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 ```
 
@@ -638,7 +638,7 @@ sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.3 \
 ```bash
 sudo ./scripts/migrate-from-upstream.sh \
   --pull \
-  --image docker.io/lonelyx/zerotier-planet:2.0.3 \
+  --image docker.io/lonelyx/zerotier-planet:2.0.2 \
   --target-data /opt/zerotier-planet-2.0/data/zerotier
 ```
 
@@ -653,50 +653,15 @@ GHCR 是同一份镜像、同一个 digest。复制前先用 `docker/login-actio
 
 fork 之后想开同样的行为，配置三步：
 
-1. 在 Docker Hub 建仓库 `zerotier-planet`（不必手动初始化，首次 push 自动创建）；
+1. 在 Docker Hub 建仓库 `zerotier-planet-2.0`（不必手动初始化，首次 push 自动创建）；
 2. Docker Hub → **Account settings → Security → New access token**，权限选 **Read & Write**；
 3. 仓库 **Settings → Secrets and variables → Actions** 新增两个 repository secret：
    - `DOCKERHUB_USERNAME`：Docker Hub 用户名（决定镜像命名空间）
    - `DOCKERHUB_TOKEN`：上一步的 access token（**不要**用登录密码）
 
 没有这两个 secret 时，镜像步骤自动 `skipped`，只推 GHCR，其余流程不受影响。
-镜像名只写在两个 workflow 的 `dst="docker.io/${DOCKERHUB_USERNAME}/zerotier-planet"`
+镜像名只写在两个 workflow 的 `dst="docker.io/${DOCKERHUB_USERNAME}/zerotier-planet-2.0"`
 一处，改名字只改这里。
-
-#### 推送到腾讯云 TCR（可选）
-
-国内服务器拉 Docker Hub 常常很慢甚至超时，可以把同一份多架构镜像再同步一份到
-**腾讯云容器镜像服务 TCR**。发布流程里已经准备好这一步，**没配置会自动跳过**。
-
-| Secret | 说明 | 例子 |
-| --- | --- | --- |
-| `TCR_REGISTRY` | 仓库域名 | 个人版 `ccr.ccs.tencentyun.com`；企业版 `<实例名>.tencentcloudcr.com` |
-| `TCR_NAMESPACE` | 命名空间 | `lonelyx` |
-| `TCR_USERNAME` | 登录用户名 | 个人版填**腾讯云账号 ID**（或子账号名）；企业版填实例访问凭证的用户名 |
-| `TCR_PASSWORD` | 登录密码 | 个人版是控制台「访问凭证」里设置的**固定密码**（不是腾讯云登录密码）；企业版是对应的 token |
-
-配置步骤：
-
-1. TCR 控制台 → **命名空间** 新建（例如 `lonelyx`），在命名空间下新建仓库 `zerotier-planet`；
-2. **访问凭证** → 个人版设置固定密码，或企业版创建长期访问凭证；
-3. GitHub 仓库 **Settings → Secrets and variables → Actions** 添加上面四个 secret；
-4. 打 tag 或手动 dispatch Release，发布流程会在推完 GHCR / Docker Hub 之后同步到 TCR。
-
-拉取与部署：
-
-```bash
-docker pull ccr.ccs.tencentyun.com/lonelyx/zerotier-planet:2.0.3
-
-sudo IMAGE=ccr.ccs.tencentyun.com/lonelyx/zerotier-planet:2.0.3 \
-  PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
-```
-
-> 同步方式与 Docker Hub 相同：先用 `imagetools create` 复制 manifest（不重新构建、
-> digest 一致）；个别 TCR 实例会拒绝跨仓库复制，此时该步骤自动回退为
-> `buildx build --platform linux/amd64,linux/arm64 --push` 重新构建一次，所以会慢几分钟。
->
-> 在 1Panel 里也可以用 TCR：**容器 → 镜像仓库** 添加 TCR 账号后拉取，或在应用的
-> `docker-compose.yml` 里把 `image:` 换成 TCR 地址（1Panel 已添加的仓库同理）。
 
 ### 升级上游版本
 
