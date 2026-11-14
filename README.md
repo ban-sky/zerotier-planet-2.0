@@ -601,9 +601,9 @@ tag 含义（两个 registry 相同）。**GitHub Release 与 git tag 带 `v`（
 
 ```text
 MediaType: application/vnd.oci.image.index.v1+json
-Digest:    sha256:b9a0d41424e5dcb7e38ad9e9408d0879f481c6eed714eaa9373e31f12a7cb44b
-  linux/amd64  -> sha256:b3635532c2a1a3637e732ce8bd9b012ceb54dfe5e76d7fbbd501fa0b4fb47b92
-  linux/arm64  -> sha256:84c771ed5ccb94daa2adac6e095da137fd289f3cb489a61d9fca2fe170fa9956
+Digest:    sha256:2859bb5a568a91aa01b096acee7ac5b0f488108139dfb1255cbf28f202ff9e99
+  linux/amd64  -> sha256:f5cfe85616b740ad3c346c84fe46fec7dcd1b09f2313c77799e7571c204a82f5
+  linux/arm64  -> sha256:0152ce80a3a4aeb2d3b1252a9edcdf19a0e7c9b8485379fdf1784da9208209b3
 ```
 
 > GHCR 包继承仓库可见性，本仓库为 public；Docker Hub 仓库也是 public。
