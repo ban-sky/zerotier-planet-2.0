@@ -14,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Tag/version for the release (for example v2.0.2)
+        description: Tag/version for the release (for example v2.0.3)
         required: true
-        default: v2.0.2
+        default: v2.0.3
       include_arm64:
         description: Also build and attach a linux/arm64 archive
         type: boolean
@@ -527,6 +527,13 @@ jobs:
       # DOCKERHUB_* repository secrets are not configured.
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      # Optional Tencent Cloud TCR mirror. TCR_REGISTRY is ccr.ccs.tencentyun.com
+      # for the personal edition, or <instance>.tencentcloudcr.com for an
+      # enterprise instance. All four values must be set or the step is skipped.
+      TCR_REGISTRY: ${{ secrets.TCR_REGISTRY }}
+      TCR_NAMESPACE: ${{ secrets.TCR_NAMESPACE }}
+      TCR_USERNAME: ${{ secrets.TCR_USERNAME }}
+      TCR_PASSWORD: ${{ secrets.TCR_PASSWORD }}
     steps:
       # Needed for 1panel/apps, which is packaged into a release asset below.
       - name: Checkout
@@ -756,5 +763,37 @@ jobs:
           dst="docker.io/${DOCKERHUB_USERNAME}/zerotier-planet"
           for tag in "${TAG}" latest; do
             docker buildx imagetools create -t "${dst}:${tag}" "${IMAGE}:${tag}"
+          done
+          docker buildx imagetools inspect "${dst}:${TAG}"
+
+      # Optional: publish the same multi-arch image to Tencent Cloud TCR
+      # (容器镜像服务). Personal edition uses ccr.ccs.tencentyun.com with the
+      # Tencent Cloud account id as the username and the registry password; an
+      # enterprise instance uses <instance>.tencentcloudcr.com. TCR does not
+      # always accept a cross-registry manifest copy, so this step pulls the
+      # GHCR manifest and re-pushes it, falling back to a plain rebuild if the
+      # copy is rejected.
+      - name: Mirror the release to Tencent Cloud TCR
+        if: env.TCR_PASSWORD != '' && env.TCR_REGISTRY != ''
+        env:
+          TAG: ${{ needs.prepare.outputs.image_tag }}
+          IMAGE: ${{ needs.prepare.outputs.image }}
+        run: |
+          set -euo pipefail
+          echo "${TCR_PASSWORD}" | docker login "${TCR_REGISTRY}" -u "${TCR_USERNAME}" --password-stdin
+          dst="${TCR_REGISTRY}/${TCR_NAMESPACE}/zerotier-planet"
+          for tag in "${TAG}" latest; do
+            src="${IMAGE}:${tag}"
+            if docker buildx imagetools create -t "${dst}:${tag}" "${src}"; then
+              echo "copied ${src} -> ${dst}:${tag}"
+            else
+              echo "::warning::manifest copy to TCR failed for ${tag}; retrying with a build"
+              docker buildx build \
+                --platform linux/amd64,linux/arm64 \
+                --build-arg ZT_VERSION="${ZT_VERSION}" \
+                --build-arg ZT_COMMIT="${ZT_COMMIT}" \
+                --build-arg ZTNCUI_COMMIT="${ZTNCUI_COMMIT}" \
+                --push -t "${dst}:${tag}" .
+            fi
           done
           docker buildx imagetools inspect "${dst}:${TAG}"
