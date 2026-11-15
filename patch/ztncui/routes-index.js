@@ -13,7 +13,7 @@ const usersController = require('../controllers/usersController');
 
 // Live runtime statistics for the overview cards. The privileged collector
 // writes the file; this endpoint only reads it, and only for signed-in users.
-const runtimeStats = require('./stats');
+const runtimeStats = require('../stats');
 
 router.get('/stats.json', restrict, function(req, res) {
   res.set('Cache-Control', 'no-store');

@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const storage = require('node-persist');
 const zt = require('./zt');
-const stats = require('./stats');
+const stats = require('../stats');
 const { isIP, isValidCidr, ipInCidr } = require('../ip');
 
 // Member display names live outside the immutable application tree.
