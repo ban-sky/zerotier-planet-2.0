@@ -90,7 +90,7 @@ sudo ./1panel-scheduled-update.sh --no-restart --quiet     # package only
 
 ### Choosing a version
 
-The package keeps the **five most recent versions** (`2.0.6`–`2.0.10`), so the version dropdown
+The package keeps the **five most recent versions** (`2.0.7`–`2.0.11`), so the version dropdown
 in the panel's install / upgrade dialog can roll back to an older build. Each directory maps to
 the image tag of the same name.
 

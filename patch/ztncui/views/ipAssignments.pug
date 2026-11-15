@@ -17,7 +17,7 @@ block net_content
         p.card-subtitle.mono= member.id
       a.btn.btn-sm.btn-ghost(href=nwurl + '#members')= t('members.title')
 
-    form.form-stack(method='POST', action='')
+    form.form-stack.card-body(method='POST', action='')
       if assignments.length
         ul.ip-list
           each ipAssignment, index in assignments

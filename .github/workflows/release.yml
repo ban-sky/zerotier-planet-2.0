@@ -16,7 +16,7 @@ on:
       tag:
         description: Tag/version for the release (for example v2.0.4)
         required: true
-        default: v2.0.10
+        default: v2.0.11
       include_arm64:
         description: Also build and attach a linux/arm64 archive
         type: boolean
