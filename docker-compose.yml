@@ -1,6 +1,6 @@
 services:
   zerotier-planet:
-    image: docker.io/lonelyx/zerotier-planet:2.0.6
+    image: docker.io/lonelyx/zerotier-planet:2.0.7
     build:
       context: .
       args:

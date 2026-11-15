@@ -114,17 +114,34 @@
       var memBar = document.querySelector('[data-bar="mem"]');
       if (memBar) memBar.style.width = clampPercent(data.memPercent) + '%';
 
-      var memHint = document.querySelector('[data-stat="mem-hint"]');
-      if (memHint) {
-        var template = memHint.getAttribute('data-template') || '';
-        if (data.memPercent === null || !template) {
-          memHint.textContent = memHint.getAttribute('data-stale') || '\u2014';
-        } else {
-          memHint.textContent = template
-            .replace('{used}', data.memUsedMb)
-            .replace('{total}', data.memTotalMb);
+      // Hints carry the server-wide numbers plus this container's share, so the
+      // template is filled from the same payload that feeds the big values.
+      var hint = function (name, replacements, ready) {
+        var el = document.querySelector('[data-stat="' + name + '"]');
+        if (!el) return;
+        var template = el.getAttribute('data-template') || '';
+        if (!ready || !template) {
+          el.textContent = el.getAttribute('data-stale') || '\u2014';
+          return;
         }
-      }
+        var text = template;
+        for (var key in replacements) {
+          if (Object.prototype.hasOwnProperty.call(replacements, key)) {
+            text = text.split('{' + key + '}').join(replacements[key]);
+          }
+        }
+        el.textContent = text;
+      };
+
+      hint('cpu-hint', {
+        cores: data.cores === null ? '\u2014' : data.cores,
+        app: data.cpuAppPercent === null ? '\u2014' : data.cpuAppPercent
+      }, data.cpuPercent !== null);
+      hint('mem-hint', {
+        used: data.memUsedMb === null ? '\u2014' : data.memUsedMb,
+        total: data.memTotalMb === null ? '\u2014' : data.memTotalMb,
+        app: data.memAppMb === null ? '\u2014' : data.memAppMb
+      }, data.memPercent !== null);
     };
 
     window.setInterval(function () {
@@ -132,6 +149,6 @@
         .then(function (response) { return response.ok ? response.json() : null; })
         .then(function (data) { if (data) paint(data); })
         .catch(function () { /* the collector may not have started yet */ });
-    }, 15000);
+    }, 5000);
   }
 })();

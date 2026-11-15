@@ -52,6 +52,8 @@ async function collectSnapshot() {
   assert(collected, 'collector did not write a snapshot');
   assert(typeof collected.collected_at === 'number', 'collected_at missing');
   assert(collected.cpu && typeof collected.cpu.cores === 'number', 'cpu.cores missing');
+  assert('appPercent' in collected.cpu, 'cpu.appPercent missing');
+  assert(collected.interval_ms === 2000, 'interval_ms should echo the requested interval');
   assert(collected.mem && typeof collected.mem.used === 'number' && collected.mem.total > 0, 'mem missing');
   assert(collected.net === null, 'net should be null when zerotier-cli fails');
 
@@ -60,8 +62,11 @@ async function collectSnapshot() {
     statsFile,
     JSON.stringify({
       collected_at: Math.floor(Date.now() / 1000),
-      cpu: { percent: 12.5, cores: 2 },
-      mem: { used: 128 * 1024 * 1024, total: 512 * 1024 * 1024, percent: 25 },
+      cpu: { percent: 12.5, cores: 8, appPercent: 3.1, limitCores: 2 },
+      mem: {
+        used: 6 * 1024 * 1024 * 1024, total: 16 * 1024 * 1024 * 1024, percent: 37.5,
+        appUsed: 128 * 1024 * 1024, appLimit: 512 * 1024 * 1024
+      },
       net: { peers: 5, direct: 4, relay: 1, paths: 7 }
     })
   );
@@ -72,9 +77,14 @@ async function collectSnapshot() {
   // 2. Fresh data is summarised with the units the template prints.
   let summary = stats.summarise(stats.read());
   assert.strictEqual(summary.available, true, 'fresh snapshot should be available');
-  assert.strictEqual(summary.cpuPercent, 12.5);
-  assert.strictEqual(summary.memUsedMb, 128);
-  assert.strictEqual(summary.memTotalMb, 512);
+  assert.strictEqual(summary.cpuPercent, 12.5, 'host CPU is the headline figure');
+  assert.strictEqual(summary.cores, 8);
+  assert.strictEqual(summary.cpuAppPercent, 3.1, 'container share is secondary');
+  assert.strictEqual(summary.limitCores, 2);
+  assert.strictEqual(summary.memUsedMb, 6144, 'host memory is the headline figure');
+  assert.strictEqual(summary.memTotalMb, 16384);
+  assert.strictEqual(summary.memPercent, 37.5);
+  assert.strictEqual(summary.memAppMb, 128, 'container memory is secondary');
   assert.strictEqual(summary.peers, 5);
   assert.strictEqual(summary.relay, 1);
 
@@ -82,7 +92,7 @@ async function collectSnapshot() {
   writeStats(statsFile, {
     collected_at: Math.floor(Date.now() / 1000) - 3600,
     cpu: { percent: 90, cores: 2 },
-    mem: { used: 1, total: 2, percent: 50 },
+    mem: { used: 1, total: 2, percent: 50, appUsed: 1, appLimit: 2 },
     net: { peers: 1, direct: 1, relay: 0, paths: 1 }
   });
   summary = stats.summarise(stats.read());
@@ -121,8 +131,8 @@ async function collectSnapshot() {
   if (pug) {
     const populated = pug.renderFile(viewPath, Object.assign({}, locals, {
       stats: {
-        available: true, cpuPercent: 12.5, cores: 2,
-        memUsedMb: 128, memTotalMb: 512, memPercent: 25,
+        available: true, cpuPercent: 12.5, cores: 8, cpuAppPercent: 3.1, limitCores: 2,
+        memUsedMb: 6144, memTotalMb: 16384, memPercent: 37.5, memAppMb: 128,
         peers: 5, direct: 4, relay: 1, paths: 7
       }
     }));
@@ -130,11 +140,15 @@ async function collectSnapshot() {
     assert(populated.includes('data-bar="mem"'), 'memory meter missing');
     assert(populated.includes('data-stat="peers"'), 'peer metric missing');
     assert(populated.includes('12.5%'), 'cpu value missing');
+    assert(populated.includes('data-stat="cpu-hint"'), 'cpu hint missing');
+    assert(populated.includes('data-stat="mem-hint"'), 'memory hint missing');
+    assert(populated.includes('overview.memHint'), 'the memory hint template should be rendered');
+    assert(!populated.includes('card-grid'), 'the quick action cards should be gone');
 
     const empty = pug.renderFile(viewPath, Object.assign({}, locals, {
       stats: {
-        available: false, cpuPercent: null, cores: null,
-        memUsedMb: null, memTotalMb: null, memPercent: null,
+        available: false, cpuPercent: null, cores: null, cpuAppPercent: null, limitCores: null,
+        memUsedMb: null, memTotalMb: null, memPercent: null, memAppMb: null,
         peers: null, direct: null, relay: null, paths: null
       }
     }));

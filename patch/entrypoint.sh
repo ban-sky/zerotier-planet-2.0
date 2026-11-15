@@ -208,7 +208,7 @@ as_app env \
 # ---------------------------------------------------------------------------
 log "starting runtime stats collector"
 STATS_FILE="$CONFIG_DIR/runtime-stats.json" \
-  STATS_INTERVAL_MS="${STATS_INTERVAL_MS:-15000}" \
+  STATS_INTERVAL_MS="${STATS_INTERVAL_MS:-5000}" \
   ZT_HOME="$ZT_HOME" \
   ZT_PORT="$ZT_PORT" \
   node /app/stats-collector.js &

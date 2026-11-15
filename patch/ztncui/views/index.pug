@@ -29,13 +29,13 @@ block content
         strong.metric-value(data-stat='cpu')= stats.cpuPercent === null ? '—' : stats.cpuPercent + '%'
         .meter
           span.meter-fill(data-bar='cpu', data-value=stats.cpuPercent === null ? 0 : stats.cpuPercent)
-        p.metric-hint(data-stat='cpu-hint', data-stale=t('overview.statsStale'))= stats.cores ? t('overview.cpuHint', { cores: stats.cores }) : t('overview.statsStale')
+        p.metric-hint(data-stat='cpu-hint', data-template=t('overview.cpuHint'), data-stale=t('overview.statsStale'))= stats.cpuPercent === null ? t('overview.statsStale') : t('overview.cpuHint', { cores: stats.cores || '-', app: stats.cpuAppPercent === null ? '-' : stats.cpuAppPercent })
       .metric
         span.stat-label= t('overview.memLabel')
         strong.metric-value(data-stat='mem')= stats.memPercent === null ? '—' : stats.memPercent + '%'
         .meter
           span.meter-fill(data-bar='mem', data-value=stats.memPercent === null ? 0 : stats.memPercent)
-        p.metric-hint(data-stat='mem-hint', data-template=t('overview.memHint'), data-stale=t('overview.statsStale'))= stats.memUsedMb === null ? t('overview.statsStale') : t('overview.memHint', { used: stats.memUsedMb, total: stats.memTotalMb })
+        p.metric-hint(data-stat='mem-hint', data-template=t('overview.memHint'), data-stale=t('overview.statsStale'))= stats.memPercent === null ? t('overview.statsStale') : t('overview.memHint', { used: stats.memUsedMb, total: stats.memTotalMb, app: stats.memAppMb === null ? '-' : stats.memAppMb })
 
     .card.conn-card
       .card-head
@@ -55,17 +55,3 @@ block content
         .conn-item
           span.conn-label= t('overview.pathsLabel')
           strong.conn-value(data-stat='paths')= stats.paths === null ? '—' : stats.paths
-
-    .card-grid
-      a.card.action-card(href='/controller/networks')
-        span.card-kicker= t('overview.networksKicker')
-        strong= t('overview.networksTitle')
-        span.card-arrow →
-      a.card.action-card(href='/users')
-        span.card-kicker= t('overview.accessKicker')
-        strong= t('overview.accessTitle')
-        span.card-arrow →
-      a.card.action-card(href='/users')
-        span.card-kicker= t('overview.securityKicker')
-        strong= t('overview.securityTitle')
-        span.card-arrow →

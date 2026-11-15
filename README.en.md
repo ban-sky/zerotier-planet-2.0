@@ -9,7 +9,7 @@ upstream project.
 
 > **Three steps to a running planet**
 > 1. Start the container (replace `<public-ip>` with your IPv4):
->    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<public-ip> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.6`
+>    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<public-ip> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.7`
 > 2. Open `https://<public-ip>:3443` and accept the self-signed certificate warning.
 > 3. The initial password is inside the container: `docker exec zerotier-planet cat /app/config/admin-password`; change it when prompted.
 
@@ -17,13 +17,13 @@ upstream project.
 > The project is `zerotier-planet-2.0` (formerly `docker-zerotier-planet-2.0`).
 > Images are published to `docker.io/lonelyx/zerotier-planet` (**default**) and
 > `ghcr.io/ban-sky/zerotier-planet` (alternative), with tags that match the version
-> **without a leading `v`** (git tags and Releases still use `v2.0.6`). The old repository
+> **without a leading `v`** (git tags and Releases still use `v2.0.7`). The old repository
 > URL and the old image names keep working.
 
 > **Versioning**
 > Numbering restarts at `2.0.0` as `2.<feature>.<fix>`: the leading 2 identifies the 2.0
 > maintenance branch, the middle number is for feature releases (e.g. `2.1.0`) and the last
-> one for small releases and bug fixes (e.g. `2.0.6`).
+> one for small releases and bug fixes (e.g. `2.0.7`).
 
 > **License warning (important)**
 > Since ZeroTier 1.16 the controller lives in `nonfree/` and is covered by the
@@ -98,7 +98,7 @@ five are kept), installs the new one and restarts the running instance;
 | GitHub | `https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/` | often slow in China |
 
 > To pin a Release use
-> `https://github.com/ban-sky/zerotier-planet-2.0/releases/download/v2.0.6/1panel-scheduled-update.sh`
+> `https://github.com/ban-sky/zerotier-planet-2.0/releases/download/v2.0.7/1panel-scheduled-update.sh`
 > (prefix it with `https://ghfast.top/` if GitHub is blocked).
 
 ### Mainland China / when github.com is unreachable
@@ -125,9 +125,10 @@ sudo bash /tmp/ztp-update.sh --source dir --from-dir /root/zerotier-planet-2.0 -
 The admin UI (ztncui 0.9.0) was rebuilt as a responsive card layout: Bootstrap 3
 and jQuery are gone, the CSP only allows `'self'`, and member authorization /
 bridging use explicit dropdowns. The screenshots were taken on a 2.3.x build:
-since then the extra explanatory copy is gone, the sign-in page shows the official
-brand mark, and 2.0.6 adds the CPU / memory / network cards to the overview
-(not shown below).
+since then the extra explanatory copy is gone and the sign-in page shows the
+official brand mark. 2.0.7 adds server-wide CPU / memory figures to the overview
+(refreshed every 5 seconds) plus the ZeroTier link counters, and drops the three
+quick-link cards (not shown below).
 
 | Controller overview | Networks |
 | --- | --- |
@@ -197,11 +198,11 @@ collapses into a menu:
 - **1Panel cron helper.** `scripts/1panel-scheduled-update.sh` can be scheduled as a
   1Panel cron job to refresh the app package and restart the installed instance.
 
-### Deployment integrations (2.0.6)
+### Deployment integrations (2.0.7)
 
 - Ships a 1Panel app package (`1panel/apps/zerotier-planet`) plus an install script, so the
   panel can install, start/stop and upgrade it from a form; the image tag is pinned to the
-  release version (e.g. `2.0.6`, no leading `v`) so the panel can detect updates.
+  release version (e.g. `2.0.7`, no leading `v`) so the panel can detect updates.
 - The app package, the `docker save` archives and the cron helper are published together in
   every Release, with `SHA256SUMS` covering all of them.
 
@@ -239,7 +240,7 @@ directory.
 > `zerotier-planet-2.0-<version>-amd64.tar.gz` from the
 > [Releases](https://github.com/ban-sky/zerotier-planet-2.0/releases) page
 > and `docker load` it, or pull
-> `docker.io/lonelyx/zerotier-planet:2.0.6` directly.
+> `docker.io/lonelyx/zerotier-planet:2.0.7` directly.
 
 ### Option 2: Compose
 
@@ -265,7 +266,7 @@ git clone https://github.com/ban-sky/zerotier-planet-2.0.git
 cd zerotier-planet-2.0 && sudo ./scripts/install-1panel-app.sh
 
 # or unpack the release asset directly
-sudo tar -xzf 1panel-app-2.0.6.tar.gz -C /opt/1panel/resource/apps/local
+sudo tar -xzf 1panel-app-2.0.7.tar.gz -C /opt/1panel/resource/apps/local
 ```
 
 Then **App Store → Update app list** and install `ZeroTier Planet`. The form fields (public
@@ -277,8 +278,8 @@ documentation: [`1panel/apps/zerotier-planet/README_en.md`](1panel/apps/zerotier
   `sudo find /opt/1panel/apps -maxdepth 6 -name admin-password` on the host.
 - The community edition only scans `/opt/1panel/resource/apps/local/`; the pro "custom app
   repository" can also point at this repo's `1panel/apps` directory. The package pins the
-  image tag to `2.0.6` (no `v`, never `latest`) so the panel can detect upgrades.
-- The package ships the **five most recent versions** (`2.0.1`–`2.0.6`), so the panel's version
+  image tag to `2.0.7` (no `v`, never `latest`) so the panel can detect upgrades.
+- The package ships the **five most recent versions** (`2.0.1`–`2.0.7`), so the panel's version
   dropdown can roll back; the cron helper keeps five as well (`--keep-versions N`, `0` keeps all).
 
 #### Cron job: follow new releases automatically
@@ -444,7 +445,7 @@ zerotier-cli orbit <moon-id> <moon-id>
 | `PASSKEY_RP_ID` | request hostname | Relying party ID for passkeys; set it when a proxy rewrites the host |
 | `PASSKEY_ORIGIN` | request origin | Expected origin, e.g. `https://zt.example.com` |
 | `PASSKEY_RP_NAME` | `ZeroTier Planet` | Name shown in the passkey prompt |
-| `STATS_INTERVAL_MS` | `15000` | How often the overview samples CPU / memory / peers (ms, minimum 2000) |
+| `STATS_INTERVAL_MS` | `5000` | How often the overview samples CPU / memory / peers (ms, minimum 2000) |
 | `ALLOWED_ORIGINS` | empty | Extra allowed form origins, comma separated, e.g. `https://zt.example.com` |
 | `TRUST_PROXY` | empty | Number of trusted proxies, e.g. `1`; trusts `X-Forwarded-For` and `X-Forwarded-Host` |
 
@@ -613,8 +614,8 @@ normally — nothing has to be pasted into the web UI):
 #### Publishing a version
 
 ```bash
-git tag -a v2.0.6 -m "zerotier-planet-2.0"
-git push origin v2.0.6
+git tag -a v2.0.7 -m "zerotier-planet-2.0"
+git push origin v2.0.7
 ```
 
 The tag runs four jobs:
@@ -635,24 +636,24 @@ The tag runs four jobs:
 Release assets:
 
 ```text
-zerotier-planet-2.0-2.0.6-amd64.tar.gz    # gzipped docker save archive
-zerotier-planet-2.0-2.0.6-arm64.tar.gz    # only when include_arm64 is set
-1panel-app-2.0.6.tar.gz                          # 1Panel app package
+zerotier-planet-2.0-2.0.7-amd64.tar.gz    # gzipped docker save archive
+zerotier-planet-2.0-2.0.7-arm64.tar.gz    # only when include_arm64 is set
+1panel-app-2.0.7.tar.gz                          # 1Panel app package
 1panel-scheduled-update.sh                          # cron helper: update the app package
 SHA256SUMS                                       # checksums for every archive
 SOURCE                                           # upstream commits and build args
-LOAD-amd64-2.0.6.txt                            # load and run instructions
+LOAD-amd64-2.0.7.txt                            # load and run instructions
 ```
 
 On a server, use the archive — no compiler and no registry login required:
 
 ```bash
-docker load < zerotier-planet-2.0-2.0.6-amd64.tar.gz
+docker load < zerotier-planet-2.0-2.0.7-amd64.tar.gz
 docker images | grep zerotier-planet-2.0
 ```
 
 The archive restores the tag
-`docker.io/lonelyx/zerotier-planet:2.0.6`, so the `image:` field in
+`docker.io/lonelyx/zerotier-planet:2.0.7`, so the `image:` field in
 `docker-compose.yml` can point straight at it.
 
 ### Image registries
@@ -668,21 +669,21 @@ multi-arch manifest (`linux/amd64` + `linux/arm64`) and both are **public**, so
 
 ```bash
 # default: Docker Hub
-docker pull docker.io/lonelyx/zerotier-planet:2.0.6
+docker pull docker.io/lonelyx/zerotier-planet:2.0.7
 
 # alternative: GHCR (use it if Docker Hub is unreachable)
-docker pull ghcr.io/ban-sky/zerotier-planet:2.0.6
+docker pull ghcr.io/ban-sky/zerotier-planet:2.0.7
 ```
 
 Tag semantics (identical on both registries):
 
 | Tag | Contents | Updated when |
 | --- | --- | --- |
-| `2.0.6` | the multi-arch image of that release | a `v*` tag is pushed or Release is dispatched |
+| `2.0.7` | the multi-arch image of that release | a `v*` tag is pushed or Release is dispatched |
 | `latest` | the most recent release | same |
 | `sha-<commit>` | build of one `main` commit | push to `main` touching `Dockerfile` / `patch/**` |
 
-Current `2.0.6` manifest (identical on both registries):
+Current `2.0.7` manifest (identical on both registries):
 
 ```text
 MediaType: application/vnd.oci.image.index.v1+json
@@ -725,13 +726,13 @@ Pull and deploy without compiling on the server (either registry, same image):
 
 ```bash
 # GHCR
-docker pull ghcr.io/ban-sky/zerotier-planet:2.0.6
+docker pull ghcr.io/ban-sky/zerotier-planet:2.0.7
 
-sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.6 \
+sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.7 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 
 # Docker Hub (useful when it is the faster registry for you)
-sudo IMAGE=lonelyx/zerotier-planet:2.0.6 \
+sudo IMAGE=lonelyx/zerotier-planet:2.0.7 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 ```
 
@@ -740,7 +741,7 @@ Migrating an old deployment directly from a workflow image:
 ```bash
 sudo ./scripts/migrate-from-upstream.sh \
   --pull \
-  --image docker.io/lonelyx/zerotier-planet:2.0.6 \
+  --image docker.io/lonelyx/zerotier-planet:2.0.7 \
   --target-data /opt/zerotier-planet-2.0/data/zerotier
 ```
 
@@ -776,7 +777,7 @@ manually.
 
 ## Security model and limitations
 
-The full review, the issues fixed in 2.0.6 and the known limitations are in
+The full review, the issues fixed in 2.0.7 and the known limitations are in
 [docs/security-audit.md](docs/security-audit.md).
 
 - Failed logins are counted per source address **and** account (10 in 15 minutes),

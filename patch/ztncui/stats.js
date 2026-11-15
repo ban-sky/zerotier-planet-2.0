@@ -12,7 +12,7 @@
 const fs = require('fs');
 
 const STATS_FILE = process.env.RUNTIME_STATS_FILE || '/app/config/runtime-stats.json';
-const MAX_AGE_MS = Math.max(5000, Number(process.env.RUNTIME_STATS_MAX_AGE_MS) || 60000);
+const MAX_AGE_MS = Math.max(5000, Number(process.env.RUNTIME_STATS_MAX_AGE_MS) || 30000);
 
 function emptyStats() {
   return {
@@ -57,12 +57,16 @@ function read() {
     ageSeconds,
     cpu: {
       percent: fresh ? numberOrNull(cpu.percent) : null,
-      cores: numberOrNull(cpu.cores)
+      cores: numberOrNull(cpu.cores),
+      appPercent: fresh ? numberOrNull(cpu.appPercent) : null,
+      limitCores: numberOrNull(cpu.limitCores)
     },
     mem: {
       used: numberOrNull(mem.used),
       total: numberOrNull(mem.total),
-      percent: fresh ? numberOrNull(mem.percent) : null
+      percent: fresh ? numberOrNull(mem.percent) : null,
+      appUsed: numberOrNull(mem.appUsed),
+      appLimit: numberOrNull(mem.appLimit)
     },
     net: net && fresh
       ? {
@@ -77,7 +81,8 @@ function read() {
 
 function megabytes(bytes) {
   if (bytes === null || bytes === undefined) return null;
-  return Math.round((bytes / (1024 * 1024)) * 10) / 10;
+  // Whole megabytes: the hints print "used / total", decimals only add noise.
+  return Math.round(bytes / (1024 * 1024));
 }
 
 // Values the templates and the refresh endpoint both use, so the first paint and
@@ -90,9 +95,13 @@ function summarise(stats) {
     available: Boolean(stats && stats.available),
     cpuPercent: cpu.percent === null || cpu.percent === undefined ? null : cpu.percent,
     cores: cpu.cores || null,
+    cpuAppPercent: cpu.appPercent === null || cpu.appPercent === undefined ? null : cpu.appPercent,
+    limitCores: cpu.limitCores || null,
     memUsedMb: megabytes(mem.used),
     memTotalMb: megabytes(mem.total),
     memPercent: mem.percent === null || mem.percent === undefined ? null : mem.percent,
+    memAppMb: megabytes(mem.appUsed),
+    memAppLimitMb: megabytes(mem.appLimit),
     peers: net ? net.peers : null,
     direct: net ? net.direct : null,
     relay: net ? net.relay : null,

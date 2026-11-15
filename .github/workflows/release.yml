@@ -16,7 +16,7 @@ on:
       tag:
         description: Tag/version for the release (for example v2.0.4)
         required: true
-        default: v2.0.6
+        default: v2.0.7
       include_arm64:
         description: Also build and attach a linux/arm64 archive
         type: boolean
@@ -509,17 +509,27 @@ jobs:
               exit 1
             fi
           done
+          # The three quick-link cards are gone; the nav bar already links there.
+          if grep -q 'card-grid' /tmp/overview.html; then
+            echo "::error::the overview still renders the quick-link cards"
+            exit 1
+          fi
 
           status=$(curl -ks -b "$jar" -c "$jar" -o /tmp/stats.json -w '%{http_code}' \
             https://127.0.0.1:3443/stats.json)
           echo "stats endpoint: $status"
           [ "$status" = "200" ]
-          for needle in '"cpuPercent"' '"memPercent"' '"peers"'; do
+          for needle in '"cpuPercent"' '"memPercent"' '"peers"' '"cpuAppPercent"' '"memAppMb"'; do
             if ! grep -q "$needle" /tmp/stats.json; then
               echo "::error::the stats payload is missing $needle"
               exit 1
             fi
           done
+
+          # Figures describe the whole machine, and the collector refreshes them
+          # every five seconds by default.
+          docker exec zt-smoke sh -c 'grep -q "\"interval_ms\":5000" /app/config/runtime-stats.json'
+          docker exec zt-smoke sh -c 'grep -q "\"appPercent\"" /app/config/runtime-stats.json'
 
           # The numbers are for signed-in users only.
           status=$(curl -ks -o /dev/null -w '%{http_code}' https://127.0.0.1:3443/stats.json)
