@@ -16,7 +16,7 @@ on:
       tag:
         description: Tag/version for the release (for example v2.0.4)
         required: true
-        default: v2.0.11
+        default: v2.0.12
       include_arm64:
         description: Also build and attach a linux/arm64 archive
         type: boolean
@@ -273,6 +273,41 @@ jobs:
           bash scripts/1panel-scheduled-update.sh \
             --panel-dir "$aged" --source dir --from-dir . --keep-versions 2 --no-restart --quiet
           test -d "$store/$old"
+
+          # With a database present the helper must also repair a dangling
+          # app_installs.app_detail_id: that dangling pointer is what makes the
+          # panel's upgrade button fail with "unexpected end of JSON input".
+          if command -v sqlite3 >/dev/null 2>&1; then
+            dbdir="$(mktemp -d)/panel"
+            dstore="$dbdir/resource/apps/local/zerotier-planet"
+            mkdir -p "$dstore" "$dbdir/db" "$dbdir/apps/local/zerotier-planet/zerotier-planet"
+            cp 1panel/apps/zerotier-planet/data.yml "$dstore/"
+            for v in "${versions[@]}"; do
+              mkdir -p "$dstore/$v"
+              cp "1panel/apps/zerotier-planet/$v/docker-compose.yml" "$dstore/$v/"
+              cp "1panel/apps/zerotier-planet/$v/data.yml" "$dstore/$v/"
+            done
+            printf 'services:\n  app:\n    image: docker.io/lonelyx/zerotier-planet:%s\n' "$old" \
+              > "$dbdir/apps/local/zerotier-planet/zerotier-planet/docker-compose.yml"
+            db="$dbdir/db/agent.db"
+            sqlite3 "$db" "CREATE TABLE app_installs (id INTEGER PRIMARY KEY, app_id INTEGER, name TEXT, version TEXT, app_detail_id INTEGER);"
+            sqlite3 "$db" "CREATE TABLE app_details (id INTEGER PRIMARY KEY, app_id INTEGER, version TEXT);"
+            sqlite3 "$db" "INSERT INTO app_details VALUES (11, 7, '$old');"
+            sqlite3 "$db" "INSERT INTO app_installs VALUES (1, 7, 'zerotier-planet', '$old', 999);"
+            bash scripts/1panel-scheduled-update.sh \
+              --panel-dir "$dbdir" --source dir --from-dir . --keep-versions 2 --no-restart --quiet
+            test -d "$dstore/$old"
+            fixed="$(sqlite3 "$db" "SELECT app_detail_id FROM app_installs WHERE id = 1;")"
+            echo "app_detail_id after the run: $fixed, expected 11"
+            [ "$fixed" = "11" ]
+
+            # --no-db has to leave the database alone.
+            sqlite3 "$db" "UPDATE app_installs SET app_detail_id = 999 WHERE id = 1;"
+            bash scripts/1panel-scheduled-update.sh \
+              --panel-dir "$dbdir" --source dir --from-dir . --keep-versions 2 --no-restart --quiet --no-db
+            still="$(sqlite3 "$db" "SELECT app_detail_id FROM app_installs WHERE id = 1;")"
+            [ "$still" = "999" ]
+          fi
           echo "the running version $old survived --keep-versions 2"
 
       - name: Download the amd64 archive

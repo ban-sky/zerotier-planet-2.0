@@ -88,11 +88,16 @@ sudo ./1panel-scheduled-update.sh --no-restart --quiet     # 只更新应用包
 
 ### 版本选择
 
-应用包里保留**最近 5 个版本**的目录（当前 `2.0.7`–`2.0.11`），面板「安装 / 升级」的版本
+应用包里保留**最近 5 个版本**的目录（当前 `2.0.8`–`2.0.12`），面板「安装 / 升级」的版本
 下拉里可以直接选旧版本回退，每个版本目录对应的镜像 tag 与目录名一致。
 
 计划任务脚本同步时也默认保留 5 个（`--keep-versions N` 可改，`0` 表示全部保留），
 只清理更老的目录，不会动已安装实例的数据。
+
+脚本还会保住**数据库里有安装记录的版本**，并把 `app_installs.app_detail_id` 重新指向本版本
+的那行记录——否则版本目录被清掉后，「更新应用列表」会删除 `app_details` 里对应的行，升级时
+就会报 `unexpected end of JSON input`。这个修复每次运行都会做，重复执行无副作用；数据库不在
+本机、或没有 `sqlite3`/`python3` 时会跳过并给出警告（`--no-db` 可显式关闭）。
 
 脚本参考 [okxlin/appstore](https://github.com/okxlin/appstore) 的做法，把应用包同步到
 `/opt/1panel/resource/apps/local/`，面板刷新后可看到新版本；默认同时重启已安装实例。

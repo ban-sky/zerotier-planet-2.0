@@ -6,18 +6,18 @@
 
 > **三步跑起来**
 > 1. 起容器（把 `<公网IP>` 换成你的 IPv4）：
->    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<公网IP> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.11`
+>    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<公网IP> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.12`
 > 2. 浏览器打开 `https://<公网IP>:3443`；自签证书提示不受信任，确认继续即可。
 > 3. 初始密码在容器里：`docker exec zerotier-planet cat /app/config/admin-password`，登录后按提示改密。
 
 > **默认使用 Docker Hub 镜像**
 > 项目名是 `zerotier-planet-2.0`（原名 `docker-zerotier-planet-2.0`）；镜像同时发布到
 > `docker.io/lonelyx/zerotier-planet`（**默认**）与 `ghcr.io/ban-sky/zerotier-planet`（备选），
-> tag 与版本号一致、**不带 `v`**（git tag 与 Release 仍是 `v2.0.11`）。旧仓库地址与旧镜像名继续可用。
+> tag 与版本号一致、**不带 `v`**（git tag 与 Release 仍是 `v2.0.12`）。旧仓库地址与旧镜像名继续可用。
 
 > **版本号规则**
 > 从 `2.0.0` 起重编：`2.<功能>.<修复>` —— 首位固定为 2（2.0 维护分支），中间位用于功能更新
-> （如 `2.1.0`），末位用于小版本与 bug 修复（如 `2.0.11`）。
+> （如 `2.1.0`），末位用于小版本与 bug 修复（如 `2.0.12`）。
 
 > **许可证提醒（重要）**
 > ZeroTier 1.16 起把 controller 移到了 `nonfree/`，采用 *ZeroTier SOURCE-AVAILABLE
@@ -89,7 +89,7 @@ curl -fsSL https://cdn.jsdelivr.net/gh/ban-sky/zerotier-planet-2.0@main/scripts/
 | GitHub 直连 | `https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/` | 国内常不稳定 |
 
 > 固定到某个 Release 时把路径换成
-> `https://github.com/ban-sky/zerotier-planet-2.0/releases/download/v2.0.11/1panel-scheduled-update.sh`，
+> `https://github.com/ban-sky/zerotier-planet-2.0/releases/download/v2.0.12/1panel-scheduled-update.sh`，
 > 需要反代就在前面加 `https://ghfast.top/`。
 
 ### 国内服务器 / 访问不了 GitHub 时
@@ -180,10 +180,10 @@ CSP 只允许 `'self'`，成员授权与桥接使用显式下拉框。截图取�
 - **1Panel 计划任务脚本**：`scripts/1panel-scheduled-update.sh` 可挂到面板计划任务，
   按周期更新应用商店包并重启已安装实例。
 
-### 部署集成（2.0.11）
+### 部署集成（2.0.12）
 
 - 附带 1Panel 应用包（`1panel/apps/zerotier-planet`）与安装脚本，可在面板里填表安装、
-  可视化启停与升级；镜像 tag 固定版本号（如 `2.0.11`，不带 `v`），方便面板比对版本。
+  可视化启停与升级；镜像 tag 固定版本号（如 `2.0.12`，不带 `v`），方便面板比对版本。
 - 应用包、`docker save` 归档与计划任务脚本一起发布在 Release，`SHA256SUMS` 覆盖全部附件。
 
 ## 快速开始
@@ -217,7 +217,7 @@ cd zerotier-planet-2.0
 > **不想在服务器上编译？** 直接下载
 > [Releases](https://github.com/ban-sky/zerotier-planet-2.0/releases) 里的
 > `zerotier-planet-2.0-<版本>-amd64.tar.gz`，`docker load` 后即可运行；
-> 也可以直接 `docker pull docker.io/lonelyx/zerotier-planet:2.0.11`。
+> 也可以直接 `docker pull docker.io/lonelyx/zerotier-planet:2.0.12`。
 
 ### 方式二：Compose
 
@@ -243,7 +243,7 @@ git clone https://github.com/ban-sky/zerotier-planet-2.0.git
 cd zerotier-planet-2.0 && sudo ./scripts/install-1panel-app.sh
 
 # 或用 Release 附件直接解包
-sudo tar -xzf 1panel-app-2.0.11.tar.gz -C /opt/1panel/resource/apps/local
+sudo tar -xzf 1panel-app-2.0.12.tar.gz -C /opt/1panel/resource/apps/local
 ```
 
 装完在面板里 **应用商店 → 更新应用列表**，搜索 `ZeroTier Planet` 安装即可。要填的字段
@@ -254,9 +254,9 @@ sudo tar -xzf 1panel-app-2.0.11.tar.gz -C /opt/1panel/resource/apps/local
 - 初始密码：应用「终端」里 `cat /app/config/admin-password`，或宿主机
   `sudo find /opt/1panel/apps -maxdepth 6 -name admin-password`。
 - 社区版商店只扫描 `/opt/1panel/resource/apps/local/`；专业版的「自定义应用仓库」也可以
-  直接指向本仓库的 `1panel/apps` 目录。应用包里的镜像 tag 固定为 `2.0.11`（不带 `v`、
+  直接指向本仓库的 `1panel/apps` 目录。应用包里的镜像 tag 固定为 `2.0.12`（不带 `v`、
   不用 `latest`），面板才能正确判断版本。
-- 应用包里保留**最近 5 个版本**目录（`2.0.7`–`2.0.11`），面板的版本下拉里可以直接选旧版本
+- 应用包里保留**最近 5 个版本**目录（`2.0.8`–`2.0.12`），面板的版本下拉里可以直接选旧版本
   回退；计划任务脚本同步时同样默认保留 5 个（`--keep-versions N` 可改，`0` 表示全部保留）。
 
 #### 计划任务：自动跟进最新版本
@@ -279,6 +279,20 @@ curl -fsSL https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/sc
 
 `--dry-run` 预演、`--no-restart` 只更新不重启、`--mirror <前缀>` 走 GitHub 加速镜像；
 详细参数与示例见[应用文档](1panel/apps/zerotier-planet/README.md)。
+
+脚本还会顺手维护 1Panel 的 SQLite 记录（`db/agent.db`）：面板给每个版本存一行
+`app_details`，并让 `app_installs.app_detail_id` 指向其中一行；版本目录一旦从商店里消失，
+下一次「更新应用列表」就会删掉那行，指针悬空后面板再解析配置就报
+`unexpected end of JSON input`。所以脚本做两件事：
+
+- **保住目录**：正在运行的版本，以及数据库里每一条已安装记录对应的版本，都不在
+  `--keep-versions` 的清理范围内；目录万一已经被删掉，会按 tag 从 CDN 取回。
+- **修好指针**：每次运行结束时把 `app_detail_id` 重新指向本版本对应的行，已经是正确值就
+  什么都不做，所以重复执行无副作用。
+
+因此**只需要跑这个脚本**，不用再手工执行 `repair-1panel-app.sh`（它仍然保留，用于数据库
+已经被写坏、或脚本在你机器上跑不起来的情况）。数据库不在本机、或者没有 `sqlite3`/`python3`
+时，脚本会打印一条警告并跳过这一步，应用包本身照常更新；要显式关掉可以加 `--no-db`。
 
 ### 界面语言
 
@@ -305,7 +319,7 @@ curl -fsSL https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/sc
 `data/config`）。全部校验在服务端完成，不需要外部服务、不发短信，也没有新增运行时依赖。
 验证器里显示的名称由 `TOTP_ISSUER` 决定（默认 `ZeroTier Planet`）。
 
-> 两步验证与通行密钥互斥：启用了其中一个，另一个就不能再启用。切换见下方「通行密钥」。
+> 两步验证与通行密钥可以同时开启，登录时任选一种，见下方「通行密钥」。
 
 ### 通行密钥（Passkey / WebAuthn）
 
@@ -566,8 +580,8 @@ node tests/webauthn.test.js
 #### 发布一个版本
 
 ```bash
-git tag -a v2.0.11 -m "zerotier-planet-2.0"
-git push origin v2.0.11
+git tag -a v2.0.12 -m "zerotier-planet-2.0"
+git push origin v2.0.12
 ```
 
 推送标签后，Actions 会依次执行：
@@ -585,23 +599,23 @@ git push origin v2.0.11
 Release 附件：
 
 ```text
-zerotier-planet-2.0-2.0.11-amd64.tar.gz    # docker save 归档（gzip）
-zerotier-planet-2.0-2.0.11-arm64.tar.gz    # 仅当勾选 include_arm64
-1panel-app-2.0.11.tar.gz                          # 1Panel 本地应用包
+zerotier-planet-2.0-2.0.12-amd64.tar.gz    # docker save 归档（gzip）
+zerotier-planet-2.0-2.0.12-arm64.tar.gz    # 仅当勾选 include_arm64
+1panel-app-2.0.12.tar.gz                          # 1Panel 本地应用包
 1panel-scheduled-update.sh                          # 计划任务：自动更新应用包
 SHA256SUMS                                       # 每个归档的校验和
 SOURCE                                           # 上游 commit 与构建参数
-LOAD-amd64-2.0.11.txt                            # 加载与运行说明
+LOAD-amd64-2.0.12.txt                            # 加载与运行说明
 ```
 
 在服务器上使用归档（无需自己编译、无需 registry 登录）：
 
 ```bash
-docker load < zerotier-planet-2.0-2.0.11-amd64.tar.gz
+docker load < zerotier-planet-2.0-2.0.12-amd64.tar.gz
 docker images | grep zerotier-planet-2.0
 ```
 
-归档里保存的 tag 是 `docker.io/lonelyx/zerotier-planet:2.0.11`，可以直接用
+归档里保存的 tag 是 `docker.io/lonelyx/zerotier-planet:2.0.12`，可以直接用
 `docker-compose.yml` 里的 `image:` 字段引用（换一台机器时也可以 `docker tag` 成同一个名字）。
 
 ### 镜像地址
@@ -616,23 +630,23 @@ manifest，`linux/amd64` + `linux/arm64`），都是**公开**的，`docker pull
 
 ```bash
 # 默认：Docker Hub
-docker pull docker.io/lonelyx/zerotier-planet:2.0.11
+docker pull docker.io/lonelyx/zerotier-planet:2.0.12
 
 # 备选：GHCR（拉不动 Docker Hub 时用）
-docker pull ghcr.io/ban-sky/zerotier-planet:2.0.11
+docker pull ghcr.io/ban-sky/zerotier-planet:2.0.12
 ```
 
-tag 含义（两个 registry 相同）。**GitHub Release 与 git tag 带 `v`（`v2.0.11`），镜像 tag 不带 `v`（`2.0.11`）。**
+tag 含义（两个 registry 相同）。**GitHub Release 与 git tag 带 `v`（`v2.0.12`），镜像 tag 不带 `v`（`2.0.12`）。**
 
 
 
 | tag | 内容 | 何时更新 |
 | --- | --- | --- |
-| `2.0.11` | 该版本发布时的多架构镜像 | 打 `v*` tag 或手动 dispatch Release |
+| `2.0.12` | 该版本发布时的多架构镜像 | 打 `v*` tag 或手动 dispatch Release |
 | `latest` | 最近一次发布 | 同上 |
 | `sha-<commit>` | 某个 `main` 提交的构建 | push 到 `main` 且改动 `Dockerfile` / `patch/**` |
 
-当前 `2.0.11` 的 manifest（两边一致）：
+当前 `2.0.12` 的 manifest（两边一致）：
 
 ```text
 MediaType: application/vnd.oci.image.index.v1+json
@@ -658,13 +672,13 @@ echo "$CR_PAT" | docker login ghcr.io -u ban-sky --password-stdin
 
 ```bash
 # 默认：Docker Hub
-docker pull docker.io/lonelyx/zerotier-planet:2.0.11
+docker pull docker.io/lonelyx/zerotier-planet:2.0.12
 
-sudo IMAGE=docker.io/lonelyx/zerotier-planet:2.0.11 \
+sudo IMAGE=docker.io/lonelyx/zerotier-planet:2.0.12 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 
 # 备选：GHCR
-sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.11 \
+sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.12 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 ```
 
@@ -673,7 +687,7 @@ sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.11 \
 ```bash
 sudo ./scripts/migrate-from-upstream.sh \
   --pull \
-  --image docker.io/lonelyx/zerotier-planet:2.0.11 \
+  --image docker.io/lonelyx/zerotier-planet:2.0.12 \
   --target-data /opt/zerotier-planet-2.0/data/zerotier
 ```
 

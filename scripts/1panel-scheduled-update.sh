@@ -70,6 +70,8 @@ quiet=0
 restart=1
 keep_downloads=0
 keep_versions=5
+use_db=1
+db=""
 
 log() { [ "$quiet" -eq 1 ] || printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >&2; }
 warn() { printf '%s WARN %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >&2; }
@@ -113,6 +115,10 @@ Options:
                      (default: 5). 1Panel lists every directory it finds, so the
                      last few releases stay selectable when you need to roll
                      back. 0 keeps them all.
+  --no-db            Skip the 1Panel SQLite step. The script otherwise points
+                     app_installs.app_detail_id back at the right version after
+                     a sync, which is what makes the panel upgrade button work
+                     again; only disable this if the database is not local.
   --keep-downloads   Leave the downloaded archive in the temp directory.
   --dry-run          Report what would change and exit without touching anything.
   --quiet            Only log warnings and errors (cron friendly).
@@ -143,6 +149,7 @@ while [ "$#" -gt 0 ]; do
     --panel-dir) [ "$#" -ge 2 ] || die "--panel-dir 需要一个值"; panel_dir="$2"; shift 2 ;;
     --no-restart) restart=0; shift ;;
     --keep-versions) [ "$#" -ge 2 ] || die "--keep-versions 需要一个值"; keep_versions="$2"; shift 2 ;;
+    --no-db) use_db=0; shift ;;
     --keep-downloads) keep_downloads=1; shift ;;
     --dry-run) dry_run=1; shift ;;
     --quiet) quiet=1; shift ;;
@@ -196,6 +203,7 @@ apps_root="$panel_dir/apps/$APP_KEY"
 
 command -v curl >/dev/null 2>&1 || die "缺少 curl"
 command -v tar >/dev/null 2>&1 || die "缺少 tar"
+
 
 # One attempt, short and bounded: a blocked host has to fail fast instead of
 # retrying for minutes (that is what made this script look like it "kept
@@ -430,8 +438,22 @@ ensure_version_dir() { # version
 }
 
 prune_versions() {
+  local keep_list=() v
   protected_version="${protected_version:-$(deployed_version)}"
-  ensure_version_dir "$protected_version"
+  if [ -n "$protected_version" ]; then keep_list+=("$protected_version"); fi
+  # Every installed row matters, not only the container that is running: each
+  # one points at an app_details row that disappears with its directory.
+  while IFS= read -r v; do
+    [ -n "$v" ] || continue
+    case " ${keep_list[*]:-} " in
+      *" $v "*) ;;
+      *) keep_list+=("$v") ;;
+    esac
+  done < <(installed_versions)
+  for v in "${keep_list[@]:-}"; do
+    [ -n "$v" ] || continue
+    ensure_version_dir "$v"
+  done
   [ "$keep_versions" -gt 0 ] || return 0
   [ -d "$target" ] || return 0
   local dirs=() doomed=() d i
@@ -440,14 +462,18 @@ prune_versions() {
   shopt -u nullglob
   [ "${#dirs[@]}" -gt "$keep_versions" ] || return 0
   mapfile -t dirs < <(printf '%s\n' "${dirs[@]}" | sort -V)
-  local protected="${protected_version:-}"
+  local name
   for ((i = 0; i < ${#dirs[@]} - keep_versions; i++)); do
-    # Never drop the version that is actually running: 1Panel keeps a row per
-    # version and a missing directory turns into a dangling app_detail_id.
-    if [ -n "$protected" ] && [ "${dirs[$i]##*/}" = "$protected" ]; then
-      log "保留已安装版本 ${dirs[$i]##*/}（不在最近 $keep_versions 个之内）"
-      continue
-    fi
+    # Never drop a version that is installed: 1Panel keeps a row per version and
+    # a missing directory turns into a dangling app_detail_id, which the panel
+    # reports as "unexpected end of JSON input".
+    name="${dirs[$i]##*/}"
+    case " ${keep_list[*]:-} " in
+      *" $name "*)
+        log "保留已安装版本 $name（不在最近 $keep_versions 个之内）"
+        continue
+        ;;
+    esac
     doomed+=("${dirs[$i]}")
   done
   [ "${#doomed[@]}" -gt 0 ] || return 0
@@ -456,6 +482,86 @@ prune_versions() {
     rm -rf -- "$d"
   done
 }
+
+# ---------------------------------------------------------------------------
+# 1Panel's SQLite state (optional)
+#
+# 1Panel keeps one app_details row per version and points app_installs at one of
+# them. A version directory that disappears from the store loses its row on the
+# next sync, which leaves the install pointing at nothing; 1Panel then unmarshals
+# an empty string and reports "unexpected end of JSON input". So the directories
+# are kept here, and the pointer is repaired here as well: a cron run leaves the
+# panel ready to upgrade without any manual step.
+# ---------------------------------------------------------------------------
+db_has_app_installs() { # file
+  local hit
+  [ -f "$1" ] || return 1
+  hit="$(db_sql "$1" "SELECT name FROM sqlite_master WHERE type='table' AND name='app_installs';" 2>/dev/null || true)"
+  [ "$hit" = "app_installs" ]
+}
+
+db_sql() { # file sql
+  if command -v sqlite3 >/dev/null 2>&1; then
+    sqlite3 "$1" "$2"
+  else
+    python3 - "$1" "$2" <<'PY'
+import sqlite3, sys
+con = sqlite3.connect(sys.argv[1])
+for row in con.execute(sys.argv[2]):
+    print("|".join("" if v is None else str(v) for v in row))
+con.commit()
+con.close()
+PY
+  fi
+}
+
+find_panel_db() {
+  local candidate
+  [ "$use_db" -eq 1 ] || return 0
+  if ! command -v sqlite3 >/dev/null 2>&1 && ! command -v python3 >/dev/null 2>&1; then
+    warn "缺少 sqlite3/python3，跳过数据库修复（应用商店包仍会更新）"
+    return 0
+  fi
+  for candidate in \
+    "$panel_dir/db/agent.db" \
+    "$panel_dir/db/1Panel.db" \
+    "$panel_dir/db/core.db" \
+    "$panel_dir/data/1Panel.db"; do
+    if db_has_app_installs "$candidate"; then
+      db="$candidate"
+      log "数据库：$db"
+      return 0
+    fi
+  done
+}
+
+installed_versions() {
+  [ -n "$db" ] || return 0
+  db_sql "$db" "SELECT version FROM app_installs WHERE name = '$APP_KEY';" 2>/dev/null || true
+}
+
+# Point every install row of this app at the app_details row of its own version.
+repair_install_refs() {
+  [ -n "$db" ] || return 0
+  local rows id app_id ver detail want
+  rows="$(db_sql "$db" "SELECT id, app_id, version, app_detail_id FROM app_installs WHERE name = '$APP_KEY';" 2>/dev/null || true)"
+  [ -n "$rows" ] || return 0
+  while IFS='|' read -r id app_id ver detail; do
+    [ -n "$id" ] || continue
+    want="$(db_sql "$db" "SELECT id FROM app_details WHERE app_id = $app_id AND version = '$ver' LIMIT 1;" 2>/dev/null || true)"
+    case "$want" in ''|*[!0-9]*) continue ;; esac
+    [ "$detail" = "$want" ] && continue
+    if db_sql "$db" "UPDATE app_installs SET app_detail_id = $want WHERE id = $id;" >/dev/null 2>&1; then
+      log "修复 $ver 的版本引用：${detail:-空} -> $want"
+    else
+      warn "无法修复 $ver 的版本引用（数据库被占用？）"
+    fi
+  done <<<"$rows"
+}
+
+# Reading 1Panel's SQLite file needs no network and no writes, so it also runs
+# for --dry-run; repair_install_refs is the part that only writes.
+find_panel_db
 
 # Resolve the version to install
 # ---------------------------------------------------------------------------
@@ -472,6 +578,7 @@ if [ "$source_mode" != branch ] && [ "$source_mode" != dir ]; then
 
   if [ -n "$installed" ] && not_older "$installed" "$version"; then
     prune_versions
+    repair_install_refs
     log "已是 $installed（最新 $version），无需更新"
     exit 0
   fi
@@ -508,6 +615,7 @@ case "$source_mode" in
 
     if [ -n "$installed" ] && not_older "$installed" "$version"; then
       prune_versions
+      repair_install_refs
       log "已是 $installed（分支最新 $version），无需更新"
       exit 0
     fi
@@ -526,6 +634,7 @@ case "$source_mode" in
 
     if [ -n "$installed" ] && not_older "$installed" "$version"; then
       prune_versions
+      repair_install_refs
       log "已是 $installed（本地最新 $version），无需更新"
       exit 0
     fi
@@ -558,6 +667,7 @@ else
 fi
 chmod -R a+rX "$target"
 prune_versions
+repair_install_refs
 
 # ---------------------------------------------------------------------------
 # Restart the running app on the new image

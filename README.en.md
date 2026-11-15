@@ -9,7 +9,7 @@ upstream project.
 
 > **Three steps to a running planet**
 > 1. Start the container (replace `<public-ip>` with your IPv4):
->    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<public-ip> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.11`
+>    `docker run -d --name zerotier-planet --restart unless-stopped -e IP_ADDR4=<public-ip> -p 9994:9994/udp -p 3443:3443/tcp -p 3000:3000/tcp -v $PWD/data/config:/app/config -v $PWD/data/dist:/app/dist -v $PWD/data/one:/var/lib/zerotier-one docker.io/lonelyx/zerotier-planet:2.0.12`
 > 2. Open `https://<public-ip>:3443` and accept the self-signed certificate warning.
 > 3. The initial password is inside the container: `docker exec zerotier-planet cat /app/config/admin-password`; change it when prompted.
 
@@ -17,13 +17,13 @@ upstream project.
 > The project is `zerotier-planet-2.0` (formerly `docker-zerotier-planet-2.0`).
 > Images are published to `docker.io/lonelyx/zerotier-planet` (**default**) and
 > `ghcr.io/ban-sky/zerotier-planet` (alternative), with tags that match the version
-> **without a leading `v`** (git tags and Releases still use `v2.0.11`). The old repository
+> **without a leading `v`** (git tags and Releases still use `v2.0.12`). The old repository
 > URL and the old image names keep working.
 
 > **Versioning**
 > Numbering restarts at `2.0.0` as `2.<feature>.<fix>`: the leading 2 identifies the 2.0
 > maintenance branch, the middle number is for feature releases (e.g. `2.1.0`) and the last
-> one for small releases and bug fixes (e.g. `2.0.11`).
+> one for small releases and bug fixes (e.g. `2.0.12`).
 
 > **License warning (important)**
 > Since ZeroTier 1.16 the controller lives in `nonfree/` and is covered by the
@@ -98,7 +98,7 @@ five are kept), installs the new one and restarts the running instance;
 | GitHub | `https://raw.githubusercontent.com/ban-sky/zerotier-planet-2.0/main/` | often slow in China |
 
 > To pin a Release use
-> `https://github.com/ban-sky/zerotier-planet-2.0/releases/download/v2.0.11/1panel-scheduled-update.sh`
+> `https://github.com/ban-sky/zerotier-planet-2.0/releases/download/v2.0.12/1panel-scheduled-update.sh`
 > (prefix it with `https://ghfast.top/` if GitHub is blocked).
 
 ### Mainland China / when github.com is unreachable
@@ -198,11 +198,11 @@ collapses into a menu:
 - **1Panel cron helper.** `scripts/1panel-scheduled-update.sh` can be scheduled as a
   1Panel cron job to refresh the app package and restart the installed instance.
 
-### Deployment integrations (2.0.11)
+### Deployment integrations (2.0.12)
 
 - Ships a 1Panel app package (`1panel/apps/zerotier-planet`) plus an install script, so the
   panel can install, start/stop and upgrade it from a form; the image tag is pinned to the
-  release version (e.g. `2.0.11`, no leading `v`) so the panel can detect updates.
+  release version (e.g. `2.0.12`, no leading `v`) so the panel can detect updates.
 - The app package, the `docker save` archives and the cron helper are published together in
   every Release, with `SHA256SUMS` covering all of them.
 
@@ -240,7 +240,7 @@ directory.
 > `zerotier-planet-2.0-<version>-amd64.tar.gz` from the
 > [Releases](https://github.com/ban-sky/zerotier-planet-2.0/releases) page
 > and `docker load` it, or pull
-> `docker.io/lonelyx/zerotier-planet:2.0.11` directly.
+> `docker.io/lonelyx/zerotier-planet:2.0.12` directly.
 
 ### Option 2: Compose
 
@@ -266,7 +266,7 @@ git clone https://github.com/ban-sky/zerotier-planet-2.0.git
 cd zerotier-planet-2.0 && sudo ./scripts/install-1panel-app.sh
 
 # or unpack the release asset directly
-sudo tar -xzf 1panel-app-2.0.11.tar.gz -C /opt/1panel/resource/apps/local
+sudo tar -xzf 1panel-app-2.0.12.tar.gz -C /opt/1panel/resource/apps/local
 ```
 
 Then **App Store → Update app list** and install `ZeroTier Planet`. The form fields (public
@@ -278,8 +278,8 @@ documentation: [`1panel/apps/zerotier-planet/README_en.md`](1panel/apps/zerotier
   `sudo find /opt/1panel/apps -maxdepth 6 -name admin-password` on the host.
 - The community edition only scans `/opt/1panel/resource/apps/local/`; the pro "custom app
   repository" can also point at this repo's `1panel/apps` directory. The package pins the
-  image tag to `2.0.11` (no `v`, never `latest`) so the panel can detect upgrades.
-- The package ships the **five most recent versions** (`2.0.1`–`2.0.11`), so the panel's version
+  image tag to `2.0.12` (no `v`, never `latest`) so the panel can detect upgrades.
+- The package ships the **five most recent versions** (`2.0.1`–`2.0.12`), so the panel's version
   dropdown can roll back; the cron helper keeps five as well (`--keep-versions N`, `0` keeps all).
 
 #### Cron job: follow new releases automatically
@@ -303,6 +303,26 @@ Four sources, `auto` tries the release first and falls back to the CDN:
 `--dry-run` previews, `--no-restart` only updates the package, `--mirror <prefix>` goes
 through a GitHub mirror. Details and examples are in the
 [app documentation](1panel/apps/zerotier-planet/README_en.md).
+
+The script also maintains 1Panel's SQLite state (`db/agent.db`). The panel keeps
+one `app_details` row per version and points `app_installs.app_detail_id` at one
+of them; when a version directory disappears from the store, the next "update app
+list" deletes that row, the pointer dangles, and the panel then reports
+`unexpected end of JSON input` whenever it reads the app's parameters. So the
+script does two things:
+
+- **keeps the directories**: the running version and every version that has an
+  install row are excluded from the `--keep-versions` cleanup, and a directory
+  that is already gone is fetched back from the CDN by tag;
+- **repairs the pointer**: at the end of each run `app_detail_id` is re-pointed at
+  the row of its own version, and nothing happens when it is already correct, so
+  repeated runs are harmless.
+
+That means **this script is all you need**; `repair-1panel-app.sh` is still shipped
+for the case where the database is already broken or the script cannot run on your
+host. When the database is not local, or neither `sqlite3` nor `python3` is
+available, the step is skipped with a warning and the store package is still
+updated; pass `--no-db` to skip it explicitly.
 
 ### Interface language
 
@@ -614,8 +634,8 @@ normally — nothing has to be pasted into the web UI):
 #### Publishing a version
 
 ```bash
-git tag -a v2.0.11 -m "zerotier-planet-2.0"
-git push origin v2.0.11
+git tag -a v2.0.12 -m "zerotier-planet-2.0"
+git push origin v2.0.12
 ```
 
 The tag runs four jobs:
@@ -636,24 +656,24 @@ The tag runs four jobs:
 Release assets:
 
 ```text
-zerotier-planet-2.0-2.0.11-amd64.tar.gz    # gzipped docker save archive
-zerotier-planet-2.0-2.0.11-arm64.tar.gz    # only when include_arm64 is set
-1panel-app-2.0.11.tar.gz                          # 1Panel app package
+zerotier-planet-2.0-2.0.12-amd64.tar.gz    # gzipped docker save archive
+zerotier-planet-2.0-2.0.12-arm64.tar.gz    # only when include_arm64 is set
+1panel-app-2.0.12.tar.gz                          # 1Panel app package
 1panel-scheduled-update.sh                          # cron helper: update the app package
 SHA256SUMS                                       # checksums for every archive
 SOURCE                                           # upstream commits and build args
-LOAD-amd64-2.0.11.txt                            # load and run instructions
+LOAD-amd64-2.0.12.txt                            # load and run instructions
 ```
 
 On a server, use the archive — no compiler and no registry login required:
 
 ```bash
-docker load < zerotier-planet-2.0-2.0.11-amd64.tar.gz
+docker load < zerotier-planet-2.0-2.0.12-amd64.tar.gz
 docker images | grep zerotier-planet-2.0
 ```
 
 The archive restores the tag
-`docker.io/lonelyx/zerotier-planet:2.0.11`, so the `image:` field in
+`docker.io/lonelyx/zerotier-planet:2.0.12`, so the `image:` field in
 `docker-compose.yml` can point straight at it.
 
 ### Image registries
@@ -669,21 +689,21 @@ multi-arch manifest (`linux/amd64` + `linux/arm64`) and both are **public**, so
 
 ```bash
 # default: Docker Hub
-docker pull docker.io/lonelyx/zerotier-planet:2.0.11
+docker pull docker.io/lonelyx/zerotier-planet:2.0.12
 
 # alternative: GHCR (use it if Docker Hub is unreachable)
-docker pull ghcr.io/ban-sky/zerotier-planet:2.0.11
+docker pull ghcr.io/ban-sky/zerotier-planet:2.0.12
 ```
 
 Tag semantics (identical on both registries):
 
 | Tag | Contents | Updated when |
 | --- | --- | --- |
-| `2.0.11` | the multi-arch image of that release | a `v*` tag is pushed or Release is dispatched |
+| `2.0.12` | the multi-arch image of that release | a `v*` tag is pushed or Release is dispatched |
 | `latest` | the most recent release | same |
 | `sha-<commit>` | build of one `main` commit | push to `main` touching `Dockerfile` / `patch/**` |
 
-Current `2.0.11` manifest (identical on both registries):
+Current `2.0.12` manifest (identical on both registries):
 
 ```text
 MediaType: application/vnd.oci.image.index.v1+json
@@ -726,13 +746,13 @@ Pull and deploy without compiling on the server (either registry, same image):
 
 ```bash
 # GHCR
-docker pull ghcr.io/ban-sky/zerotier-planet:2.0.11
+docker pull ghcr.io/ban-sky/zerotier-planet:2.0.12
 
-sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.11 \
+sudo IMAGE=ghcr.io/ban-sky/zerotier-planet:2.0.12 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 
 # Docker Hub (useful when it is the faster registry for you)
-sudo IMAGE=lonelyx/zerotier-planet:2.0.11 \
+sudo IMAGE=lonelyx/zerotier-planet:2.0.12 \
   PULL=1 ./deploy.sh --pull --name myztplanet --data ./data/zerotier
 ```
 
@@ -741,7 +761,7 @@ Migrating an old deployment directly from a workflow image:
 ```bash
 sudo ./scripts/migrate-from-upstream.sh \
   --pull \
-  --image docker.io/lonelyx/zerotier-planet:2.0.11 \
+  --image docker.io/lonelyx/zerotier-planet:2.0.12 \
   --target-data /opt/zerotier-planet-2.0/data/zerotier
 ```
 
@@ -777,7 +797,7 @@ manually.
 
 ## Security model and limitations
 
-The full review, the issues fixed in 2.0.11 and the known limitations are in
+The full review, the issues fixed in 2.0.12 and the known limitations are in
 [docs/security-audit.md](docs/security-audit.md).
 
 - Failed logins are counted per source address **and** account (10 in 15 minutes),
@@ -831,7 +851,7 @@ The full review, the issues fixed in 2.0.11 and the known limitations are in
   string, which Go reports as `unexpected end of JSON input`. Restarting the panel or
   re-downloading the package cannot help: the broken part is the database reference.
 
-  Two steps fix it (`repair-1panel-app.sh` ships with the release since 2.0.11):
+  Two steps fix it (`repair-1panel-app.sh` ships with the release since 2.0.12):
 
   ```bash
   # 1. Restore the directory of the installed version (the updater does this itself)
