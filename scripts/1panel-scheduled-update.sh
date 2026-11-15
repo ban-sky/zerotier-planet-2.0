@@ -224,11 +224,29 @@ installed_version() {
   fi
 }
 
+# 1Panel installs an app from the local store under apps/local/<key>/<key>;
+# apps installed from the official store live under apps/<key>. Both layouts
+# exist in the wild, so look the compose file up instead of assuming one.
+find_compose() {
+  local dir
+  for dir in \
+    "$panel_dir/apps/$APP_KEY" \
+    "$panel_dir/apps/local/$APP_KEY/$APP_KEY" \
+    "$panel_dir/apps/local/$APP_KEY"; do
+    if [ -f "$dir/docker-compose.yml" ]; then
+      printf '%s\n' "$dir/docker-compose.yml"
+      return 0
+    fi
+  done
+  return 0
+}
+
 # Version the running app is pinned to, read from its compose file. 1Panel's
 # own state lives in SQLite; this file is the only host-side hint we can read.
 deployed_version() {
-  local compose="$apps_root/docker-compose.yml" ref ver
-  [ -f "$compose" ] || return 0
+  local compose ref ver
+  compose="$(find_compose)"
+  [ -n "$compose" ] || return 0
   ref="$(sed -n 's/^[[:space:]]*image:[[:space:]]*//p' "$compose" | head -n1)"
   ver="${ref##*:}"
   case "$ver" in
@@ -450,7 +468,7 @@ if [ "$source_mode" != branch ] && [ "$source_mode" != dir ]; then
 
   if [ "$dry_run" -eq 1 ]; then
     log "[dry-run] 将安装 $tag 到 $target（当前：${installed:-未安装}；来源：$source_mode）"
-    if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会重启 $apps_root 下的应用"; fi
+    if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会在 $(dirname "$(find_compose)") 重启应用"; fi
     if [ "$keep_versions" -gt 0 ]; then log "[dry-run] 应用包内保留最近 $keep_versions 个版本目录"; fi
     exit 0
   fi
@@ -485,7 +503,7 @@ case "$source_mode" in
     fi
     if [ "$dry_run" -eq 1 ]; then
       log "[dry-run] 将从分支 $branch 安装 $version 到 $target（当前：${installed:-未安装}）"
-      if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会重启 $apps_root 下的应用"; fi
+      if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会在 $(dirname "$(find_compose)") 重启应用"; fi
     if [ "$keep_versions" -gt 0 ]; then log "[dry-run] 应用包内保留最近 $keep_versions 个版本目录"; fi
       exit 0
     fi
@@ -503,7 +521,7 @@ case "$source_mode" in
     fi
     if [ "$dry_run" -eq 1 ]; then
       log "[dry-run] 将从 $from_dir 安装 $version 到 $target（当前：${installed:-未安装}）"
-      if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会重启 $apps_root 下的应用"; fi
+      if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会在 $(dirname "$(find_compose)") 重启应用"; fi
     if [ "$keep_versions" -gt 0 ]; then log "[dry-run] 应用包内保留最近 $keep_versions 个版本目录"; fi
       exit 0
     fi
@@ -534,13 +552,13 @@ prune_versions
 # ---------------------------------------------------------------------------
 # Restart the running app on the new image
 # ---------------------------------------------------------------------------
-if [ "$restart" -eq 1 ] && [ -d "$apps_root" ]; then
-  command -v docker >/dev/null 2>&1 || die "应用包已更新，但缺少 docker，无法重启应用"
-  image_ref="$IMAGE:$version"
-  found=0
-  for compose in "$apps_root"/*/docker-compose.yml; do
-    [ -f "$compose" ] || continue
-    found=1
+if [ "$restart" -eq 1 ]; then
+  compose="$(find_compose)"
+  if [ -z "$compose" ]; then
+    log "没有已安装的应用实例，仅更新了应用商店包"
+  else
+    command -v docker >/dev/null 2>&1 || die "应用包已更新，但缺少 docker，无法重启应用"
+    image_ref="$IMAGE:$version"
     app_dir="$(dirname "$compose")"
     old_ref="$(sed -n 's/^[[:space:]]*image:[[:space:]]*//p' "$compose" | head -n1)"
     if [ "$old_ref" = "$image_ref" ]; then
@@ -555,8 +573,7 @@ if [ "$restart" -eq 1 ] && [ -d "$apps_root" ]; then
       warn "重启 $app_dir 失败，请检查 docker compose 的输出"
       exit 1
     fi
-  done
-  if [ "$found" -eq 0 ]; then log "没有已安装的应用实例，仅更新了应用商店包"; fi
+  fi
 else
   log "跳过容器重启（--no-restart 或未安装该应用）"
 fi

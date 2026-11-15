@@ -170,24 +170,25 @@ fi
 DB="$found"
 log "数据库：$DB"
 
-APP_DIR="$PANEL_DIR/resource/apps/local/$APP_KEY"
-APP_ROOT="$PANEL_DIR/apps/$APP_KEY"
-COMPOSE="$APP_ROOT/docker-compose.yml"
-[ -d "$APP_DIR" ] || die "找不到应用目录：$APP_DIR"
-[ -f "$COMPOSE" ] || die "找不到应用的 compose 文件：$COMPOSE"
+row="$(sqlite_on "$DB" "SELECT id, app_id, version, app_detail_id, container_name FROM app_installs WHERE name = '$APP_KEY';")"
+[ -n "$row" ] || die "数据库里没有名为 $APP_KEY 的已安装记录（这台机器可能不是用 1Panel 装的这个应用）"
+IFS='|' read -r install_id app_id install_ver detail_id container_name <<<"$row"
+log "安装记录：id=$install_id app_id=$app_id version=$install_ver app_detail_id=${detail_id:-空} container=${container_name:-?}"
 
-ref="$(sed -n 's/^[[:space:]]*image:[[:space:]]*//p' "$COMPOSE" | head -n1)"
-version="${ref##*:}"
-[ -n "$version" ] || die "读不到已安装版本（$COMPOSE 里没有 image 行）"
-log "已安装版本：$version"
+# The version comes from the database: that is what the panel compares against.
+version="$install_ver"
+APP_DIR="$PANEL_DIR/resource/apps/local/$APP_KEY"
+APP_ROOT=""
+for candidate in \
+  "$PANEL_DIR/apps/local/$APP_KEY/$APP_KEY" \
+  "$PANEL_DIR/apps/$APP_KEY" \
+  "$PANEL_DIR/apps/local/$APP_KEY"; do
+  if [ -f "$candidate/docker-compose.yml" ]; then APP_ROOT="$candidate"; break; fi
+done
+if [ -n "$APP_ROOT" ]; then log "应用目录：$APP_ROOT"; fi
 
 [ -d "$APP_DIR/$version" ] || die "版本目录不存在：$APP_DIR/$version
-先运行更新脚本（scripts/1panel-scheduled-update.sh），它会补回该目录"
-
-row="$(sqlite_on "$DB" "SELECT id, app_id, version, app_detail_id FROM app_installs WHERE name = '$APP_KEY';")"
-[ -n "$row" ] || die "数据库里没有名为 $APP_KEY 的已安装记录（这台机器可能不是用 1Panel 装的这个应用）"
-IFS='|' read -r install_id app_id install_ver detail_id <<<"$row"
-log "安装记录：id=$install_id app_id=$app_id version=$install_ver app_detail_id=$detail_id"
+先运行更新脚本（scripts/1panel-scheduled-update.sh），它会补回该目录（升级按钮需要这个目录）"
 
 detail_row="$(sqlite_on "$DB" "SELECT id FROM app_details WHERE app_id = $app_id AND version = '$install_ver';")"
 [ -n "$detail_row" ] || die "app_details 里没有 $install_ver 的记录。

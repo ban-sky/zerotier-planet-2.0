@@ -90,7 +90,7 @@ sudo ./1panel-scheduled-update.sh --no-restart --quiet     # package only
 
 ### Choosing a version
 
-The package keeps the **five most recent versions** (`2.0.5`–`2.0.9`), so the version dropdown
+The package keeps the **five most recent versions** (`2.0.6`–`2.0.10`), so the version dropdown
 in the panel's install / upgrade dialog can roll back to an older build. Each directory maps to
 the image tag of the same name.
 
@@ -130,4 +130,4 @@ version, and the installed instance is restarted by default. Every request gives
   repair-1panel-app.sh -y` (shipped with the release since 2.0.8). The updater now keeps the
   directory of the running version, so this no longer happens.
   The script locates the database itself (`db/1Panel.db` on v1, `db/agent.db` on v2); use
-  `--list-dbs` to see what it finds, or pass `--db`.
+  `--list-dbs` to see what it finds, or pass `--db`; both install layouts are detected.
