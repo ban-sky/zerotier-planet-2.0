@@ -90,7 +90,7 @@ sudo ./1panel-scheduled-update.sh --no-restart --quiet     # package only
 
 ### Choosing a version
 
-The package keeps the **five most recent versions** (`2.0.3`–`2.0.7`), so the version dropdown
+The package keeps the **five most recent versions** (`2.0.4`–`2.0.8`), so the version dropdown
 in the panel's install / upgrade dialog can roll back to an older build. Each directory maps to
 the image tag of the same name.
 
@@ -122,3 +122,10 @@ version, and the installed instance is restarted by default. Every request gives
   password-only login.
 - **The store still shows the old version**: refresh the app store once; if it persists, rerun
   the script with `--source cdn`.
+- **Pressing upgrade fails with `unexpected end of JSON input`**: once the directory of the
+  **installed** version is gone from the store, 1Panel deletes the matching `app_details` row
+  and `app_installs.app_detail_id` dangles; the empty string is then parsed as JSON. To repair:
+  run the updater to restore the directory (`sudo bash 1panel-scheduled-update.sh --source cdn
+  --quiet --no-restart`), press "Update app list" in the panel, then run `sudo bash
+  repair-1panel-app.sh -y` (shipped with the release since 2.0.8). The updater now keeps the
+  directory of the running version, so this no longer happens.

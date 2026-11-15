@@ -224,6 +224,18 @@ installed_version() {
   fi
 }
 
+# Version the running app is pinned to, read from its compose file. 1Panel's
+# own state lives in SQLite; this file is the only host-side hint we can read.
+deployed_version() {
+  local compose="$apps_root/docker-compose.yml" ref ver
+  [ -f "$compose" ] || return 0
+  ref="$(sed -n 's/^[[:space:]]*image:[[:space:]]*//p' "$compose" | head -n1)"
+  ver="${ref##*:}"
+  case "$ver" in
+    [0-9]*.[0-9]*.[0-9]*) printf '%s\n' "$ver" ;;
+  esac
+}
+
 # True when $1 is not older than $2 (both x.y.z).
 not_older() {
   [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n1)" = "$1" ]
@@ -351,7 +363,47 @@ trap cleanup EXIT
 installed="$(installed_version)"
 
 # ---------------------------------------------------------------------------
+# Re-create the store directory of a version that is no longer shipped in
+# the package but is still installed. Without it 1Panel drops the matching
+# app_details row on the next sync and app_installs.app_detail_id dangles,
+# which its API then reports as "unexpected end of JSON input".
+ensure_version_dir() { # version
+  local ver="$1" entry kind base url f ok
+  [ -n "$ver" ] || return 0
+  [ -d "$target/$ver" ] && return 0
+  log "补回已安装版本 $ver 的目录"
+  mkdir -p "$tmp/keep/$ver"
+  for entry in "${CDN_MIRRORS[@]}"; do
+    kind="${entry%% *}"
+    base="${entry#* }"
+    ok=1
+    for f in data.yml docker-compose.yml; do
+      if [ "$kind" = "jsdelivr" ]; then
+        url="$base/$REPO@v$ver/1panel/apps/$APP_KEY/$ver/$f"
+      else
+        url="$base/$REPO/v$ver/1panel/apps/$APP_KEY/$ver/$f"
+      fi
+      if ! curl_get "$url" "$tmp/keep/$ver/$f"; then
+        ok=0
+        break
+      fi
+    done
+    if [ "$ok" -eq 1 ]; then
+      mkdir -p "$target/$ver"
+      cp -a "$tmp/keep/$ver/." "$target/$ver/"
+      chmod -R a+rX "$target/$ver"
+      rm -rf "$tmp/keep"
+      return 0
+    fi
+    rm -rf "$tmp/keep"
+  done
+  warn "无法从镜像补回 $ver 的目录，1Panel 可能仍会丢掉该版本的记录"
+  return 0
+}
+
 prune_versions() {
+  protected_version="${protected_version:-$(deployed_version)}"
+  ensure_version_dir "$protected_version"
   [ "$keep_versions" -gt 0 ] || return 0
   [ -d "$target" ] || return 0
   local dirs=() doomed=() d i
@@ -360,9 +412,17 @@ prune_versions() {
   shopt -u nullglob
   [ "${#dirs[@]}" -gt "$keep_versions" ] || return 0
   mapfile -t dirs < <(printf '%s\n' "${dirs[@]}" | sort -V)
+  local protected="${protected_version:-}"
   for ((i = 0; i < ${#dirs[@]} - keep_versions; i++)); do
+    # Never drop the version that is actually running: 1Panel keeps a row per
+    # version and a missing directory turns into a dangling app_detail_id.
+    if [ -n "$protected" ] && [ "${dirs[$i]##*/}" = "$protected" ]; then
+      log "保留已安装版本 ${dirs[$i]##*/}（不在最近 $keep_versions 个之内）"
+      continue
+    fi
     doomed+=("${dirs[$i]}")
   done
+  [ "${#doomed[@]}" -gt 0 ] || return 0
   log "保留最近 $keep_versions 个版本，清理：${doomed[*]##*/}"
   for d in "${doomed[@]}"; do
     rm -rf -- "$d"

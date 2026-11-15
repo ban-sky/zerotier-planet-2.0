@@ -88,7 +88,7 @@ sudo ./1panel-scheduled-update.sh --no-restart --quiet     # 只更新应用包
 
 ### 版本选择
 
-应用包里保留**最近 5 个版本**的目录（当前 `2.0.3`–`2.0.7`），面板「安装 / 升级」的版本
+应用包里保留**最近 5 个版本**的目录（当前 `2.0.4`–`2.0.8`），面板「安装 / 升级」的版本
 下拉里可以直接选旧版本回退，每个版本目录对应的镜像 tag 与目录名一致。
 
 计划任务脚本同步时也默认保留 5 个（`--keep-versions N` 可改，`0` 表示全部保留），
@@ -114,3 +114,9 @@ sudo ./1panel-scheduled-update.sh --no-restart --quiet     # 只更新应用包
   `X-Forwarded-Host`，或把域名写进环境变量 `ALLOWED_ORIGINS`。
 - **通行密钥用不了**：WebAuthn 只接受域名 + 受信任证书。裸 IP 下页面会提示并仍允许尝试一次，但多数浏览器会拒绝；此时用 TOTP 或纯密码登录。
 - **更新后商店里版本没变**：面板缓存需要刷新一次应用商店；仍不变时用 `--source cdn` 重跑脚本。
+- **点「升级」报 `unexpected end of JSON input`**：应用商店里**已安装版本**的目录被删掉后，
+  1Panel 会删掉对应的 `app_details` 记录，`app_installs.app_detail_id` 随之悬空，读出来是
+  空字符串，于是报这句话。修复：先跑更新脚本补回目录（`sudo bash 1panel-scheduled-update.sh
+  --source cdn --quiet --no-restart`），在面板点「更新应用列表」，再执行 `sudo bash
+  repair-1panel-app.sh -y`（2.0.8 起随 Release 提供）。更新脚本现在会保留运行中版本的目录，
+  不会再触发这个问题。
