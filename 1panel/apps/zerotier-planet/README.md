@@ -88,7 +88,7 @@ sudo ./1panel-scheduled-update.sh --no-restart --quiet     # 只更新应用包
 
 ### 版本选择
 
-应用包里保留**最近 5 个版本**的目录（当前 `2.0.4`–`2.0.8`），面板「安装 / 升级」的版本
+应用包里保留**最近 5 个版本**的目录（当前 `2.0.5`–`2.0.9`），面板「安装 / 升级」的版本
 下拉里可以直接选旧版本回退，每个版本目录对应的镜像 tag 与目录名一致。
 
 计划任务脚本同步时也默认保留 5 个（`--keep-versions N` 可改，`0` 表示全部保留），
@@ -120,3 +120,5 @@ sudo ./1panel-scheduled-update.sh --no-restart --quiet     # 只更新应用包
   --source cdn --quiet --no-restart`），在面板点「更新应用列表」，再执行 `sudo bash
   repair-1panel-app.sh -y`（2.0.8 起随 Release 提供）。更新脚本现在会保留运行中版本的目录，
   不会再触发这个问题。
+  脚本会自动定位数据库（v1 的 `db/1Panel.db`、v2 的 `db/agent.db`）；不确定时先跑
+  `--list-dbs`，或用 `--db` 指定。

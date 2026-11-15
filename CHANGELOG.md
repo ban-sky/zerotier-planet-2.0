@@ -13,6 +13,26 @@
 > 2.0.0 之前的构建曾用 `2.1.0`–`2.6.0` 编号，已统一重编：那些内容全部并入本 2.0.0，
 > 对应的旧 Release 与 tag 已删除，不再提供下载。
 
+## [2.0.9] - 2026-11-15
+
+小版本：修复 `repair-1panel-app.sh` 在 1Panel v2 上「找不到数据库」的问题。
+
+### 修复
+
+- **数据库定位**：脚本原本写死 `<面板目录>/db/1Panel.db`，而 1Panel v2 把后端拆成 core 与
+  agent 两个进程，应用安装记录在 `db/agent.db` 里——于是 v2 用户跑脚本时直接报「找不到数据库」。
+  现在会依次探测 `db/agent.db`、`db/1Panel.db`、`db/core.db`、`data/1Panel.db` 以及
+  `db/` 下任意 `*.db`，并用 `sqlite_master` 校验该库确实有 `app_installs` 表。
+- **找不到时的提示**：列出尝试过的路径（区分「不存在」与「没有该表」），并给出
+  `find /opt/1panel -maxdepth 3 -name '*.db'` 与 Docker 部署时 `docker cp` 导出数据库的命令。
+- **新增 `--list-dbs`**：只列出探测结果并标注哪个库带 `app_installs`，可配合 `--db` 直接指定。
+- **缺少 sqlite3/python3 时**：改为在读取数据库之前就报错，提示安装方式，而不是中途失败。
+
+### 文档
+
+- 主 README 与 1Panel 应用文档（中英）补充「脚本会自动找 agent.db / 1Panel.db，可用
+  `--list-dbs` 或 `--db` 指定」。
+
 ## [2.0.8] - 2026-11-15
 
 小版本：修掉 1Panel 里「升级两次之后再升级就报 `unexpected end of JSON input`」的问题，

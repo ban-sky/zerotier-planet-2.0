@@ -16,7 +16,7 @@ on:
       tag:
         description: Tag/version for the release (for example v2.0.4)
         required: true
-        default: v2.0.8
+        default: v2.0.9
       include_arm64:
         description: Also build and attach a linux/arm64 archive
         type: boolean
@@ -258,7 +258,7 @@ jobs:
           store="$aged/resource/apps/local/zerotier-planet"
           mkdir -p "$store" "$aged/apps/zerotier-planet"
           cp 1panel/apps/zerotier-planet/data.yml "$store/"
-          for v in 2.0.5 2.0.6 2.0.8 2.0.8; do
+          for v in 2.0.5 2.0.6 2.0.9 2.0.9; do
             mkdir -p "$store/$v"
             cp "1panel/apps/zerotier-planet/$v/docker-compose.yml" "$store/$v/"
             cp "1panel/apps/zerotier-planet/$v/data.yml" "$store/$v/"
