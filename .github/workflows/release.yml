@@ -258,17 +258,22 @@ jobs:
           store="$aged/resource/apps/local/zerotier-planet"
           mkdir -p "$store" "$aged/apps/zerotier-planet"
           cp 1panel/apps/zerotier-planet/data.yml "$store/"
-          for v in 2.0.5 2.0.6 2.0.10 2.0.10; do
+          mapfile -t versions < <(cd 1panel/apps/zerotier-planet && ls -1d [0-9]* | sort -V)
+          old="${versions[0]}"
+          for v in "${versions[@]:1:3}"; do
             mkdir -p "$store/$v"
             cp "1panel/apps/zerotier-planet/$v/docker-compose.yml" "$store/$v/"
             cp "1panel/apps/zerotier-planet/$v/data.yml" "$store/$v/"
           done
-          printf 'services:\n  zerotier-planet:\n    image: docker.io/lonelyx/zerotier-planet:2.0.4\n' \
+          mkdir -p "$store/$old"
+          cp "1panel/apps/zerotier-planet/$old/docker-compose.yml" "$store/$old/"
+          cp "1panel/apps/zerotier-planet/$old/data.yml" "$store/$old/"
+          printf 'services:\n  zerotier-planet:\n    image: docker.io/lonelyx/zerotier-planet:%s\n' "$old" \
             > "$aged/apps/zerotier-planet/docker-compose.yml"
           bash scripts/1panel-scheduled-update.sh \
             --panel-dir "$aged" --source dir --from-dir . --keep-versions 2 --no-restart --quiet
-          test -d "$store/2.0.4"
-          echo "the running version survived --keep-versions 2"
+          test -d "$store/$old"
+          echo "the running version $old survived --keep-versions 2"
 
       - name: Download the amd64 archive
         uses: actions/download-artifact@v4

@@ -243,6 +243,16 @@ find_compose() {
 
 # Version the running app is pinned to, read from its compose file. 1Panel's
 # own state lives in SQLite; this file is the only host-side hint we can read.
+dry_restart_hint() {
+  local compose
+  compose="$(find_compose)"
+  if [ -n "$compose" ]; then
+    log "[dry-run] 之后会在 $(dirname "$compose") 重启应用"
+  else
+    log "[dry-run] 之后会重启应用（若已安装）"
+  fi
+}
+
 deployed_version() {
   local compose ref ver
   compose="$(find_compose)"
@@ -468,7 +478,7 @@ if [ "$source_mode" != branch ] && [ "$source_mode" != dir ]; then
 
   if [ "$dry_run" -eq 1 ]; then
     log "[dry-run] 将安装 $tag 到 $target（当前：${installed:-未安装}；来源：$source_mode）"
-    if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会在 $(dirname "$(find_compose)") 重启应用"; fi
+    if [ "$restart" -eq 1 ]; then dry_restart_hint; fi
     if [ "$keep_versions" -gt 0 ]; then log "[dry-run] 应用包内保留最近 $keep_versions 个版本目录"; fi
     exit 0
   fi
@@ -503,7 +513,7 @@ case "$source_mode" in
     fi
     if [ "$dry_run" -eq 1 ]; then
       log "[dry-run] 将从分支 $branch 安装 $version 到 $target（当前：${installed:-未安装}）"
-      if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会在 $(dirname "$(find_compose)") 重启应用"; fi
+      if [ "$restart" -eq 1 ]; then dry_restart_hint; fi
     if [ "$keep_versions" -gt 0 ]; then log "[dry-run] 应用包内保留最近 $keep_versions 个版本目录"; fi
       exit 0
     fi
@@ -521,7 +531,7 @@ case "$source_mode" in
     fi
     if [ "$dry_run" -eq 1 ]; then
       log "[dry-run] 将从 $from_dir 安装 $version 到 $target（当前：${installed:-未安装}）"
-      if [ "$restart" -eq 1 ]; then log "[dry-run] 之后会在 $(dirname "$(find_compose)") 重启应用"; fi
+      if [ "$restart" -eq 1 ]; then dry_restart_hint; fi
     if [ "$keep_versions" -gt 0 ]; then log "[dry-run] 应用包内保留最近 $keep_versions 个版本目录"; fi
       exit 0
     fi
