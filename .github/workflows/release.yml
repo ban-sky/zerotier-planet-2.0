@@ -237,8 +237,12 @@ jobs:
           newest="$(cd 1panel/apps/zerotier-planet && ls -1d [0-9]* | sort -V | tail -n1)"
           test -d "$panel_dir/resource/apps/local/zerotier-planet/$newest"
           kept="$(cd "$panel_dir/resource/apps/local/zerotier-planet" && ls -1d [0-9]* | wc -l)"
-          echo "versions in the store: $kept (newest $newest)"
-          [ "$kept" -ge 2 ] && [ "$kept" -le 5 ]
+          shipped="$(cd 1panel/apps/zerotier-planet && ls -1d [0-9]* | wc -l)"
+          echo "versions in the store: $kept (shipped $shipped, newest $newest)"
+          # The store must have exactly what the package shipped: the updater
+          # never deletes a version directory any more.
+          [ "$kept" -ge 2 ]
+          [ "$kept" -eq "$shipped" ]
 
           # The offline path sees the already-installed version and does nothing.
           out="$(bash scripts/1panel-scheduled-update.sh \

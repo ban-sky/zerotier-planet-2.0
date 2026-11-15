@@ -256,7 +256,7 @@ sudo tar -xzf 1panel-app-2.0.13.tar.gz -C /opt/1panel/resource/apps/local
 - 社区版商店只扫描 `/opt/1panel/resource/apps/local/`；专业版的「自定义应用仓库」也可以
   直接指向本仓库的 `1panel/apps` 目录。应用包里的镜像 tag 固定为 `2.0.13`（不带 `v`、
   不用 `latest`），面板才能正确判断版本。
-- Release 里的应用包带**最近 5 个版本**目录（`2.0.8`–`2.0.13`），面板的版本下拉里可以直接
+- Release 里的应用包带**最近 5 个版本**目录（`2.0.9`–`2.0.13`），面板的版本下拉里可以直接
   选旧版本回退；计划任务脚本同步时**只增不减**（和 okxlin/appstore 的 `cp -rf` 一样），
   装过哪些版本就一直留着，需要裁剪时用 `--keep-versions N`。
 
