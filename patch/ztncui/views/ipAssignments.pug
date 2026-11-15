@@ -54,8 +54,6 @@ block net_content
               td(colspan='2')
                 .empty-inline= t('ipAssignments.noRoutes')
 
-  if errors
+  if error
     .alert.alert-error
-      ul.list-tight
-        each err in errors
-          li= err.msg
+      p= error

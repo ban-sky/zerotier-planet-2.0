@@ -186,11 +186,19 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .filter(Boolean);
 const trustProxyHeaders = Boolean(process.env.TRUST_PROXY);
 
+// Header values are attacker controlled; keep them from forging log lines.
+function logSafe(value) {
+  return String(value === undefined || value === null ? '' : value)
+    .replace(/[\u0000-\u001f\u007f]/g, '?')
+    .slice(0, 200);
+}
+
 app.use((req, res, next) => {
   const result = checkOrigin(req, { allowedOrigins, trustProxy: trustProxyHeaders });
   if (result.ok) return next();
   console.warn('rejected %s %s: origin=%s candidates=%s',
-    req.method, req.originalUrl, result.origin, result.candidates.join(',') || '(none)');
+    logSafe(req.method), logSafe(req.originalUrl),
+    logSafe(result.origin), logSafe(result.candidates.join(',')) || '(none)');
   const message = res.locals && res.locals.t
     ? res.locals.t('err.badOrigin')
     : 'Bad request origin';

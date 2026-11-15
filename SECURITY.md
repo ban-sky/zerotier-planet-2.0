@@ -50,12 +50,18 @@ defaults.
 - **Least privilege.** `zerotier-one` runs as root inside the container because
   the daemon refuses to start as a non-root user. ztncui and the file server run
   as uid/gid 1000; the entrypoint starts as root only to fix volume ownership,
-  generate TLS material and launch the daemon, then uses `setpriv` for the
-  unprivileged services. Compose enables `read_only`, `no-new-privileges` and a
+  generate TLS material, launch the daemon and run the runtime-statistics
+  collector (it needs the authtoken), then uses `setpriv` for the unprivileged
+  services. The collector only publishes CPU/memory/peer counters to a
+  world-readable JSON file; the UI never receives the authtoken. Compose enables `read_only`, `no-new-privileges` and a
   `tmpfs` `/tmp`.
 - **No secret logging.** `set -x` is not used; the authtoken, controller token,
   session secret and download key are not printed. The initial admin password is
   written to a file instead of the log.
+- **Two factors, your choice.** TOTP (RFC 6238, replay-safe, one-time backup
+  codes) and WebAuthn passkeys (ES256/RS256/EdDSA, rpId/origin/flag/counter
+  checks) can be enabled together; sign-in then accepts either one. Secrets and
+  credential public keys live in the same 0600 database as the password hash.
 - **Password storage.** Argon2id (64 MiB, t=3, p=1) via `hash-wasm`, with a
   per-password random salt. The password database is written atomically with
   mode 0600.
@@ -63,7 +69,9 @@ defaults.
   first boot; cookies are `HttpOnly`, `SameSite=Lax` and `Secure` under TLS.
   Sessions are regenerated at login and bounded in memory.
 - **Request hardening.** Same-origin Origin/Referer checks for state-changing
-  requests, login throttling (10 failures / 15 min / IP), a 256 KiB body limit,
+  requests, login throttling keyed by source address *and* account (10
+  failures / 15 min / account, 50 / 15 min / address), sanitised rejection
+  logs, a 256 KiB body limit,
   CSP, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and
   error pages that do not expose stack traces.
 - **Input handling.** Usernames are restricted to a safe character set and
@@ -85,6 +93,15 @@ defaults.
 6. Keep the image updated; watch the repository's security advisories.
 7. Do not reuse the planet identity for multiple deployments.
 
+## Recent self-audit
+
+The full source was re-reviewed for this release: authentication and
+authorisation, request handling, file and path handling, session and secret
+management, the file server, the entrypoint, and the shell scripts.
+`npm audit --omit=dev` reported no known vulnerabilities in the production
+dependency tree. Findings, fixes and accepted risks are documented in
+[docs/security-audit.md](docs/security-audit.md).
+
 ## Known limitations
 
 - The controller uses ZeroTier's non-free, source-available implementation and
@@ -100,7 +117,7 @@ defaults.
   9 and serve-favicon have been removed and replaced with small local helpers:
   a `node:net` IP/CIDR module, a validator shim, native `fetch`, and a
   dependency-free responsive UI. The production dependency tree was audited
-  against the npm advisory database on 2026-11-06 and reported no known
+  against the npm advisory database on 2026-11-15 and reported no known
   vulnerabilities; re-run `npm audit --omit=dev` on every rebuild, because new
   advisories can appear at any time.
 - Container images are built for `linux/amd64` and `linux/arm64` only.

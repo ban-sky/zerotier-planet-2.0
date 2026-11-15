@@ -20,12 +20,10 @@ block net_content
           strong= t('v4.autoAssign')
           span.check-hint= t('v4.autoAssignHint')
 
-    .form-actions
-      button.btn.btn-primary(type='submit')= t('btn.save')
-      a.btn.btn-ghost(href=nwurl)= t('btn.cancel')
+      .form-actions
+        button.btn.btn-primary(type='submit')= t('btn.save')
+        a.btn.btn-ghost(href=nwurl)= t('btn.cancel')
 
-  if errors
+  if error
     .alert.alert-error
-      ul.list-tight
-        each err in errors
-          li= err.msg
+      p= error

@@ -80,4 +80,58 @@
     var randomButton = document.querySelector('[data-random-cidr]');
     if (randomButton) randomButton.addEventListener('click', randomCidr);
   }
+
+  // Overview metrics. Bars are painted from data attributes (the CSP forbids
+  // inline styles in the markup) and the numbers are refreshed from the
+  // authenticated /stats.json endpoint, which reads the collector's file.
+  function clampPercent(value) {
+    var n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, n));
+  }
+
+  var bars = document.querySelectorAll('[data-bar]');
+  for (var i = 0; i < bars.length; i++) {
+    bars[i].style.width = clampPercent(bars[i].getAttribute('data-value')) + '%';
+  }
+
+  var statHost = document.querySelector('[data-stat="cpu"]');
+  if (statHost) {
+    var paint = function (data) {
+      var setText = function (name, value) {
+        var el = document.querySelector('[data-stat="' + name + '"]');
+        if (el) el.textContent = value;
+      };
+      setText('cpu', data.cpuPercent === null ? '\u2014' : data.cpuPercent + '%');
+      setText('mem', data.memPercent === null ? '\u2014' : data.memPercent + '%');
+      setText('peers', data.peers === null ? '\u2014' : data.peers);
+      setText('direct', data.direct === null ? '\u2014' : data.direct);
+      setText('relay', data.relay === null ? '\u2014' : data.relay);
+      setText('paths', data.paths === null ? '\u2014' : data.paths);
+
+      var cpuBar = document.querySelector('[data-bar="cpu"]');
+      if (cpuBar) cpuBar.style.width = clampPercent(data.cpuPercent) + '%';
+      var memBar = document.querySelector('[data-bar="mem"]');
+      if (memBar) memBar.style.width = clampPercent(data.memPercent) + '%';
+
+      var memHint = document.querySelector('[data-stat="mem-hint"]');
+      if (memHint) {
+        var template = memHint.getAttribute('data-template') || '';
+        if (data.memPercent === null || !template) {
+          memHint.textContent = memHint.getAttribute('data-stale') || '\u2014';
+        } else {
+          memHint.textContent = template
+            .replace('{used}', data.memUsedMb)
+            .replace('{total}', data.memTotalMb);
+        }
+      }
+    };
+
+    window.setInterval(function () {
+      fetch('/stats.json', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function (response) { return response.ok ? response.json() : null; })
+        .then(function (data) { if (data) paint(data); })
+        .catch(function () { /* the collector may not have started yet */ });
+    }, 15000);
+  }
 })();

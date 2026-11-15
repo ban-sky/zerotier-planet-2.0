@@ -11,49 +11,82 @@ const restrict = auth.restrict;
 const router = express.Router();
 const usersController = require('../controllers/usersController');
 
+// Live runtime statistics for the overview cards. The privileged collector
+// writes the file; this endpoint only reads it, and only for signed-in users.
+const runtimeStats = require('./stats');
+
+router.get('/stats.json', restrict, function(req, res) {
+  res.set('Cache-Control', 'no-store');
+  res.json(runtimeStats.summarise(runtimeStats.read()));
+});
+
 // Translate a user-visible string when the i18n middleware is installed; fall
 // back to the key so the UI still renders when it is not.
 function msg(req, key, vars) {
   return req.t ? req.t(key, vars) : key;
 }
 
-// Failed-login throttling. Per source IP, 10 failures per 15 minutes.
+// Failed-login throttling: 10 failures per account and source address in a
+// 15 minute window. The bucket is keyed by address *and* username on purpose.
+// Behind a reverse proxy without TRUST_PROXY every request looks like it comes
+// from 127.0.0.1; keying on the address alone would let a single attacker lock
+// every administrator out of the panel. Per-address totals are still capped so
+// one source cannot spray guesses across many account names.
 const MAX_FAILURES = 10;
+const MAX_FAILURES_PER_ADDRESS = 50;
 const FAILURE_WINDOW_MS = 15 * 60 * 1000;
+const MAX_TRACKED_KEYS = 5000;
 const failures = new Map();
 
 function clientIp(req) {
   return req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
 }
 
-function failureRecord(ip) {
+function attemptKey(req, scope, name) {
+  const account = typeof name === 'string' ? name.trim().toLowerCase().slice(0, 64) : '';
+  return clientIp(req) + '|' + scope + '|' + account;
+}
+
+function failureRecord(key) {
   const now = Date.now();
-  let record = failures.get(ip);
+  let record = failures.get(key);
   if (!record || record.reset <= now) {
+    if (failures.size >= MAX_TRACKED_KEYS) failures.clear();
     record = { count: 0, reset: now + FAILURE_WINDOW_MS };
-    failures.set(ip, record);
+    failures.set(key, record);
   }
   return record;
 }
 
-function isThrottled(ip) {
-  const record = failures.get(ip);
+function addressFailures(req) {
+  const prefix = clientIp(req) + '|';
+  const now = Date.now();
+  let total = 0;
+  for (const [key, record] of failures) {
+    if (key.indexOf(prefix) === 0 && record.reset > now) total += record.count;
+  }
+  return total;
+}
+
+function isThrottled(req, scope, name) {
+  if (addressFailures(req) >= MAX_FAILURES_PER_ADDRESS) return true;
+  const record = failures.get(attemptKey(req, scope, name));
   return !!record && record.reset > Date.now() && record.count >= MAX_FAILURES;
 }
 
-function recordFailure(ip) {
-  const record = failureRecord(ip);
+function recordFailure(req, scope, name) {
+  const record = failureRecord(attemptKey(req, scope, name));
   record.count += 1;
 }
 
-function clearFailures(ip) {
-  failures.delete(ip);
+function clearFailures(req, scope, name) {
+  failures.delete(attemptKey(req, scope, name));
 }
 
 const cleanup = setInterval(() => {
   const now = Date.now();
-  for (const [ip, record] of failures) {
-    if (record.reset <= now) failures.delete(ip);
+  for (const [key, record] of failures) {
+    if (record.reset <= now) failures.delete(key);
   }
 }, 5 * 60 * 1000);
 if (cleanup.unref) cleanup.unref();
@@ -129,9 +162,10 @@ function finishLogin(req, res, next, user, redirectTo) {
 }
 
 router.post('/login', async function(req, res, next) {
-  const ip = clientIp(req);
+  const username = typeof req.body.username === 'string' ? req.body.username : '';
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
 
-  if (isThrottled(ip)) {
+  if (isThrottled(req, 'password', username)) {
     res.setHeader('Retry-After', '900');
     return res.status(429).render('login', {
       title: msg(req, 'page.login'),
@@ -139,11 +173,8 @@ router.post('/login', async function(req, res, next) {
     });
   }
 
-  const username = typeof req.body.username === 'string' ? req.body.username : '';
-  const password = typeof req.body.password === 'string' ? req.body.password : '';
-
   if (!username || !password || username.length > 128 || password.length > 160) {
-    recordFailure(ip);
+    recordFailure(req, 'password', username);
     return res.status(401).render('login', {
       title: msg(req, 'page.login'),
       message: msg(req, 'msg.authFailed')
@@ -153,7 +184,7 @@ router.post('/login', async function(req, res, next) {
   try {
     const user = await authenticateAsync(username, password);
     if (!user) {
-      recordFailure(ip);
+      recordFailure(req, 'password', username);
       return res.status(401).render('login', {
         title: msg(req, 'page.login'),
         message: msg(req, 'msg.authFailed')
@@ -170,7 +201,7 @@ router.post('/login', async function(req, res, next) {
     if (passkeyState.enabled) methods.push('passkey');
     if (totpState.enabled) methods.push('totp');
     if (methods.length) {
-      clearFailures(ip);
+      clearFailures(req, 'password', username);
       const redirectTo = safeRedirect(req.query.redirect);
       req.session.regenerate(function(regenErr) {
         if (regenErr) return next(regenErr);
@@ -186,7 +217,7 @@ router.post('/login', async function(req, res, next) {
       return;
     }
 
-    clearFailures(ip);
+    clearFailures(req, 'password', username);
     finishLogin(req, res, next, user, req.query.redirect);
   } catch (err) {
     next(err);
@@ -212,7 +243,6 @@ router.get('/login/2fa', function(req, res) {
 });
 
 router.post('/login/2fa', async function(req, res, next) {
-  const ip = clientIp(req);
   const pending = req.session.pending2fa;
 
   if (!pending || Date.now() - pending.issued_at > PENDING_TTL_MS) {
@@ -221,7 +251,7 @@ router.post('/login/2fa', async function(req, res, next) {
     return res.redirect('/login');
   }
 
-  if (isThrottled(ip)) {
+  if (isThrottled(req, 'totp', pending.name)) {
     res.setHeader('Retry-After', '900');
     return res.status(429).render('login2fa', {
       title: msg(req, 'page.twoFactor'),
@@ -238,7 +268,7 @@ router.post('/login/2fa', async function(req, res, next) {
 
   const code = typeof req.body.code === 'string' ? req.body.code : '';
   if (!code || code.length > 32) {
-    recordFailure(ip);
+    recordFailure(req, 'totp', pending.name);
     return res.status(401).render('login2fa', {
       title: msg(req, 'page.twoFactor'),
       name: pending.name,
@@ -252,7 +282,7 @@ router.post('/login/2fa', async function(req, res, next) {
   try {
     const check = await usersController.totp_check(pending.name, code);
     if (!check.ok) {
-      recordFailure(ip);
+      recordFailure(req, 'totp', pending.name);
       return res.status(401).render('login2fa', {
         title: msg(req, 'page.twoFactor'),
         name: pending.name,
@@ -263,7 +293,7 @@ router.post('/login/2fa', async function(req, res, next) {
       });
     }
 
-    clearFailures(ip);
+    clearFailures(req, 'totp', pending.name);
     finishLogin(req, res, next, { name: pending.name, pass_set: pending.pass_set }, pending.redirect);
   } catch (err) {
     next(err);
@@ -317,15 +347,14 @@ router.post('/login/passkey/finish', async function(req, res, next) {
   const pending = passkeyPending(req, res);
   if (!pending) return;
 
-  const ip = clientIp(req);
-  if (isThrottled(ip)) {
+  if (isThrottled(req, 'passkey', pending.name)) {
     res.setHeader('Retry-After', '900');
     return res.status(429).json({ error: msg(req, 'msg.tooManyAttempts') });
   }
 
   try {
     await usersController.passkey_finish_authentication(req, pending.name, req.body || {});
-    clearFailures(ip);
+    clearFailures(req, 'passkey', pending.name);
     const redirectTo = pending.pass_set
       ? safeRedirect(pending.redirect)
       : '/users/' + encodeURIComponent(pending.name) + '/password';
@@ -336,7 +365,7 @@ router.post('/login/passkey/finish', async function(req, res, next) {
       res.json({ ok: true, redirect: redirectTo });
     });
   } catch (err) {
-    recordFailure(ip);
+    recordFailure(req, 'passkey', pending.name);
     res.status(401).json({ error: usersController.passkeyError(req, err.code || 'invalid') });
   }
 });

@@ -23,8 +23,6 @@ block content
         p.field-hint= t('networkCreate.nameHint')
       button.btn.btn-primary(type='submit')= t('btn.createNetwork')
 
-  if errors
+  if error
     .alert.alert-error
-      ul.list-tight
-        each err in errors
-          li= err.msg
+      p= error

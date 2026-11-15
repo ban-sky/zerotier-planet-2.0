@@ -42,8 +42,6 @@ block net_content
         button.btn.btn-primary(type='submit')= t('btn.addRoute')
         a.btn.btn-ghost(href=nwurl)= t('btn.cancel')
 
-  if errors
+  if error
     .alert.alert-error
-      ul.list-tight
-        each err in errors
-          li= err.msg
+      p= error

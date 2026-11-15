@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const storage = require('node-persist');
 const zt = require('./zt');
+const stats = require('./stats');
 const { isIP, isValidCidr, ipInCidr } = require('../ip');
 
 // Member display names live outside the immutable application tree.
@@ -98,10 +99,13 @@ exports.index = async function(req, res) {
 
   try {
     const zt_status = await zt.get_zt_status();
-    res.render('index', {title: 'ztncui', navigate: navigate, zt_status});
+    res.render('index', {title: 'ztncui', navigate: navigate, zt_status,
+                         stats: stats.summarise(stats.read())});
   } catch (err) {
     res.render('index', {title: 'ztncui',
-                      navigate: navigate, error: msg(req, 'msg.ztStatusFailed', { err })});
+                      navigate: navigate,
+                      stats: stats.summarise(stats.read()),
+                      error: msg(req, 'msg.ztStatusFailed', { err })});
   }
 };
 

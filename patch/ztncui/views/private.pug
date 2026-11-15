@@ -29,8 +29,6 @@ block net_content
         strong= t('private.publicAlertTitle')
         = t('private.publicAlertBody')
 
-  if errors
+  if error
     .alert.alert-error
-      ul.list-tight
-        each err in errors
-          li= err.msg
+      p= error

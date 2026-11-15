@@ -21,8 +21,6 @@ block users_content
           button.btn.btn-danger(type='submit', name='delete', value='delete')= t('userDelete.confirmButton', { name: user.name })
           a.btn.btn-ghost(href='/users')= t('btn.cancel')
 
-  if errors
+  if error
     .alert.alert-error
-      ul.list-tight
-        each err in errors
-          li= err.msg
+      p= error

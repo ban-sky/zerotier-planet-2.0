@@ -154,6 +154,7 @@ RUN cd /src/ztncui \
  && cp /tmp/ztncui-patch/i18n.js ./src/i18n.js \
  && cp /tmp/ztncui-patch/totp.js ./src/totp.js \
  && cp /tmp/ztncui-patch/webauthn.js ./src/webauthn.js \
+ && cp /tmp/ztncui-patch/stats.js ./src/stats.js \
  && cp /tmp/ztncui-patch/zt.js ./src/controllers/zt.js \
  && cp /tmp/ztncui-patch/routes-index.js ./src/routes/index.js \
  && cp /tmp/ztncui-patch/routes-users.js ./src/routes/users.js \
@@ -197,6 +198,7 @@ COPY --from=ui-builder /src/ztncui /app/ztncui
 COPY patch/entrypoint.sh /app/entrypoint.sh
 COPY patch/http_server.js /app/http_server.js
 COPY patch/configure-moon.js /app/configure-moon.js
+COPY patch/stats-collector.js /app/stats-collector.js
 COPY LICENSE /usr/share/licenses/zerotier-planet-2.0/LICENSE
 COPY NOTICE /usr/share/licenses/zerotier-planet-2.0/NOTICE
 
@@ -207,7 +209,7 @@ RUN mkdir -p /app/config /app/dist /var/lib/zerotier-one/moons.d \
  && ln -sf ../../../usr/sbin/zerotier-one /var/lib/zerotier-one/zerotier-one \
  && ln -sf ../../../usr/sbin/zerotier-one /var/lib/zerotier-one/zerotier-cli \
  && ln -sf ../../../usr/sbin/zerotier-one /var/lib/zerotier-one/zerotier-idtool \
- && chmod 755 /app/entrypoint.sh /app/http_server.js /app/configure-moon.js /app/mkworld \
+ && chmod 755 /app/entrypoint.sh /app/http_server.js /app/configure-moon.js /app/stats-collector.js /app/mkworld \
  && chown -R node:node /app/config /app/dist /var/lib/zerotier-one
 
 EXPOSE 9994/udp 3443/tcp 3000/tcp

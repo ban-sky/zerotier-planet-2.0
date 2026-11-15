@@ -23,6 +23,39 @@ block content
         span.stat-label= t('overview.versionLabel')
         strong= zt_status.version
 
+    .metric-grid
+      .metric
+        span.stat-label= t('overview.cpuLabel')
+        strong.metric-value(data-stat='cpu')= stats.cpuPercent === null ? '—' : stats.cpuPercent + '%'
+        .meter
+          span.meter-fill(data-bar='cpu', data-value=stats.cpuPercent === null ? 0 : stats.cpuPercent)
+        p.metric-hint(data-stat='cpu-hint', data-stale=t('overview.statsStale'))= stats.cores ? t('overview.cpuHint', { cores: stats.cores }) : t('overview.statsStale')
+      .metric
+        span.stat-label= t('overview.memLabel')
+        strong.metric-value(data-stat='mem')= stats.memPercent === null ? '—' : stats.memPercent + '%'
+        .meter
+          span.meter-fill(data-bar='mem', data-value=stats.memPercent === null ? 0 : stats.memPercent)
+        p.metric-hint(data-stat='mem-hint', data-template=t('overview.memHint'), data-stale=t('overview.statsStale'))= stats.memUsedMb === null ? t('overview.statsStale') : t('overview.memHint', { used: stats.memUsedMb, total: stats.memTotalMb })
+
+    .card.conn-card
+      .card-head
+        div
+          h2= t('overview.networkTitle')
+          p.card-subtitle= t('overview.networkHint')
+      .conn-grid
+        .conn-item
+          span.conn-label= t('overview.peersLabel')
+          strong.conn-value(data-stat='peers')= stats.peers === null ? '—' : stats.peers
+        .conn-item
+          span.conn-label= t('overview.directLabel')
+          strong.conn-value(data-stat='direct')= stats.direct === null ? '—' : stats.direct
+        .conn-item
+          span.conn-label= t('overview.relayLabel')
+          strong.conn-value(data-stat='relay')= stats.relay === null ? '—' : stats.relay
+        .conn-item
+          span.conn-label= t('overview.pathsLabel')
+          strong.conn-value(data-stat='paths')= stats.paths === null ? '—' : stats.paths
+
     .card-grid
       a.card.action-card(href='/controller/networks')
         span.card-kicker= t('overview.networksKicker')

@@ -202,6 +202,19 @@ as_app env \
   node "$ZTNCUI_DIR/tools/init-admin.js"
 
 # ---------------------------------------------------------------------------
+# Runtime statistics (CPU / memory / ZeroTier peers) for the overview page.
+# The collector needs the authtoken, so it runs as root and publishes a
+# world-readable JSON file; ztncui itself only ever reads that file.
+# ---------------------------------------------------------------------------
+log "starting runtime stats collector"
+STATS_FILE="$CONFIG_DIR/runtime-stats.json" \
+  STATS_INTERVAL_MS="${STATS_INTERVAL_MS:-15000}" \
+  ZT_HOME="$ZT_HOME" \
+  ZT_PORT="$ZT_PORT" \
+  node /app/stats-collector.js &
+STATS_PID=$!
+
+# ---------------------------------------------------------------------------
 # Start ztncui and the planet file server
 # ---------------------------------------------------------------------------
 log "starting ztncui on port $API_PORT"
@@ -231,6 +244,7 @@ as_app env \
   TRUST_PROXY="${TRUST_PROXY:-}" \
   ZTNCUI_PASSWD="$CONFIG_DIR/ztncui-passwd" \
   ZTNCUI_STORAGE="$CONFIG_DIR/ztncui-storage" \
+  RUNTIME_STATS_FILE="$CONFIG_DIR/runtime-stats.json" \
   ZTNCUI_ADMIN_PASSWORD_FILE="$CONFIG_DIR/admin-password" \
   node "$ZTNCUI_DIR/bin/www" &
 UI_PID=$!
@@ -269,15 +283,15 @@ EOF
 
 shutdown() {
   log "shutting down"
-  kill "$ZT_PID" "$UI_PID" "$FS_PID" 2>/dev/null || true
-  wait "$ZT_PID" "$UI_PID" "$FS_PID" 2>/dev/null || true
+  kill "$ZT_PID" "$UI_PID" "$FS_PID" "$STATS_PID" 2>/dev/null || true
+  wait "$ZT_PID" "$UI_PID" "$FS_PID" "$STATS_PID" 2>/dev/null || true
   exit 0
 }
 trap shutdown TERM INT
 
 # Exit (and let the container restart) if any supervised process dies.
 set +e
-wait -n "$ZT_PID" "$UI_PID" "$FS_PID"
+wait -n "$ZT_PID" "$UI_PID" "$FS_PID" "$STATS_PID"
 STATUS=$?
 set -e
 log "a child process exited with status $STATUS; stopping the container"
