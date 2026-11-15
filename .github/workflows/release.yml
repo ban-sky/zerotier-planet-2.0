@@ -483,10 +483,12 @@ jobs:
           docker exec zt-smoke sh -c 'grep -q "\"mem\"" /app/config/runtime-stats.json'
 
           # TOTP is on by now, so finish the challenge before reading the page.
-          # Ask for the *next* step: replaying the code the previous step used is
-          # refused by design.
-          secret=$(docker exec zt-smoke node -e "const d=JSON.parse(require('fs').readFileSync('/app/config/ztncui-passwd','utf8'));const u=Object.values(d).find(function(x){return x&&x.totp&&x.totp.secret});process.stdout.write(u?u.totp.secret:'')")
-          echo "stored TOTP secret length: ${#secret}"
+          # Generate the *next* counter: the enrolment step already consumed the
+          # current one and replays inside a step are refused by design.
+          record=$(docker exec zt-smoke node -e "const d=JSON.parse(require('fs').readFileSync('/app/config/ztncui-passwd','utf8'));const u=Object.values(d).find(function(x){return x&&x.totp&&x.totp.secret});process.stdout.write(u?u.totp.secret+' '+(u.totp.lastStep||0):'')")
+          secret=${record%% *}
+          last_step=${record##* }
+          echo "stored TOTP secret length: ${#secret}, last step: ${last_step}"
           [ "${#secret}" -eq 32 ]
 
           jar=/tmp/zt-jar
@@ -494,7 +496,7 @@ jobs:
           curl -ks -c "$jar" -b "$jar" -o /dev/null -X POST \
             --data 'username=admin' --data-urlencode 'password=smoke-2fa-pass-1234' \
             https://127.0.0.1:3443/login
-          code=$(node -e "const t=require('./patch/ztncui/totp.js');console.log(t.generate('$secret', { now: Date.now() + 30000 }))")
+          code=$(node -e "const t=require('./patch/ztncui/totp.js');const step=Number('$last_step')+1;console.log(t.generate('$secret', { now: step * 30000 + 1000 }))")
           status=$(curl -ks -b "$jar" -c "$jar" -o /dev/null -w '%{http_code}' -X POST \
             -d "code=$code" https://127.0.0.1:3443/login/2fa)
           echo "second factor status: $status"
