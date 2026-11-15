@@ -90,17 +90,18 @@ sudo ./1panel-scheduled-update.sh --no-restart --quiet     # package only
 
 ### Choosing a version
 
-The package keeps the **five most recent versions** (`2.0.8`–`2.0.12`), so the version dropdown
+The package keeps the **five most recent versions** (`2.0.8`–`2.0.13`), so the version dropdown
 in the panel's install / upgrade dialog can roll back to an older build. Each directory maps to
 the image tag of the same name.
 
-The cron helper keeps five as well (`--keep-versions N`, `0` for all) and only removes the
-directories beyond that; installed data is never touched.
+The cron helper only ever adds to the store (the same idea as okxlin/appstore's `cp -rf`), so a
+version the panel still references never disappears; pass `--keep-versions N` to prune.
 
 It also keeps every version that still has an install row and re-points
 `app_installs.app_detail_id` at the row of its own version -- otherwise, once a version
 directory is gone, "update app list" deletes the matching `app_details` row and the next
-upgrade fails with `unexpected end of JSON input`. The repair runs on every invocation and is
+upgrade fails with `unexpected end of JSON input` (when that row is already gone the pointer
+is moved to the newest row of the same app). The repair runs on every invocation and is
 harmless when repeated; if the database is not local or neither `sqlite3` nor `python3` is
 installed the step is skipped with a warning (`--no-db` disables it explicitly).
 

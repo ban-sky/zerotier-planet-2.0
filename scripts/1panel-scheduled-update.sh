@@ -69,7 +69,7 @@ dry_run=0
 quiet=0
 restart=1
 keep_downloads=0
-keep_versions=5
+keep_versions=0
 use_db=1
 db=""
 
@@ -112,9 +112,11 @@ Options:
                      container untouched.
   --keep-versions <n>
                      How many version directories to keep in the store package
-                     (default: 5). 1Panel lists every directory it finds, so the
-                     last few releases stay selectable when you need to roll
-                     back. 0 keeps them all.
+                     (default: 0, keep everything). Every directory left in the
+                     store is one more entry in the panel's version dropdown, and
+                     removing one that still has an install row is what produces
+                     the "unexpected end of JSON input" upgrade error, so by
+                     default nothing is deleted. Set a number to prune.
   --no-db            Skip the 1Panel SQLite step. The script otherwise points
                      app_installs.app_detail_id back at the right version after
                      a sync, which is what makes the panel upgrade button work
@@ -537,18 +539,33 @@ find_panel_db() {
 
 installed_versions() {
   [ -n "$db" ] || return 0
-  db_sql "$db" "SELECT version FROM app_installs WHERE name = '$APP_KEY';" 2>/dev/null || true
+  local out
+  out="$(db_sql "$db" "SELECT i.version FROM app_installs i JOIN apps a ON a.id = i.app_id WHERE a.key = '$APP_KEY';" 2>/dev/null || true)"
+  if [ -z "$out" ]; then
+    out="$(db_sql "$db" "SELECT version FROM app_installs WHERE name = '$APP_KEY';" 2>/dev/null || true)"
+  fi
+  printf '%s\n' "$out"
 }
 
 # Point every install row of this app at the app_details row of its own version.
 repair_install_refs() {
   [ -n "$db" ] || return 0
   local rows id app_id ver detail want
-  rows="$(db_sql "$db" "SELECT id, app_id, version, app_detail_id FROM app_installs WHERE name = '$APP_KEY';" 2>/dev/null || true)"
+  rows="$(db_sql "$db" "SELECT i.id, i.app_id, i.version, i.app_detail_id FROM app_installs i JOIN apps a ON a.id = i.app_id WHERE a.key = '$APP_KEY';" 2>/dev/null || true)"
+  if [ -z "$rows" ]; then
+    rows="$(db_sql "$db" "SELECT id, app_id, version, app_detail_id FROM app_installs WHERE name = '$APP_KEY';" 2>/dev/null || true)"
+  fi
   [ -n "$rows" ] || return 0
   while IFS='|' read -r id app_id ver detail; do
     [ -n "$id" ] || continue
     want="$(db_sql "$db" "SELECT id FROM app_details WHERE app_id = $app_id AND version = '$ver' LIMIT 1;" 2>/dev/null || true)"
+    if [ -z "$want" ]; then
+      # The row of that version is gone (its directory was removed at some
+      # point). Any row of the same app gives the panel valid parameters, and
+      # the newest one is what an upgrade is heading for anyway.
+      warn "$ver 的记录已不存在，改用最新版本的记录"
+      want="$(db_sql "$db" "SELECT id FROM app_details WHERE app_id = $app_id ORDER BY id DESC LIMIT 1;" 2>/dev/null || true)"
+    fi
     case "$want" in ''|*[!0-9]*) continue ;; esac
     [ "$detail" = "$want" ] && continue
     if db_sql "$db" "UPDATE app_installs SET app_detail_id = $want WHERE id = $id;" >/dev/null 2>&1; then
