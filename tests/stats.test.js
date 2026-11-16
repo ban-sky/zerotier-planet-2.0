@@ -85,6 +85,13 @@ async function collectSnapshot() {
   assert.strictEqual(summary.memTotalMb, 16384);
   assert.strictEqual(summary.memPercent, 37.5);
   assert.strictEqual(summary.memAppMb, 128, 'container memory is secondary');
+  assert.strictEqual(summary.memUsed, '6 GB', 'memory of a gigabyte or more is shown in GB');
+  assert.strictEqual(summary.memTotal, '16 GB');
+  assert.strictEqual(summary.memApp, '128 MB', 'memory under a gigabyte stays in MB');
+  assert.strictEqual(stats.formatMemory(1536 * 1024 * 1024), '1.5 GB');
+  assert.strictEqual(stats.formatMemory(1024 * 1024 * 1024), '1 GB');
+  assert.strictEqual(stats.formatMemory(1023 * 1024 * 1024), '1023 MB');
+  assert.strictEqual(stats.formatMemory(null), null);
   assert.strictEqual(summary.peers, 5);
   assert.strictEqual(summary.relay, 1);
 
@@ -132,7 +139,8 @@ async function collectSnapshot() {
     const populated = pug.renderFile(viewPath, Object.assign({}, locals, {
       stats: {
         available: true, cpuPercent: 12.5, cores: 8, cpuAppPercent: 3.1, limitCores: 2,
-        memUsedMb: 6144, memTotalMb: 16384, memPercent: 37.5, memAppMb: 128,
+        memUsed: '6 GB', memTotal: '16 GB', memPercent: 37.5, memApp: '128 MB',
+        memUsedMb: 6144, memTotalMb: 16384, memAppMb: 128,
         peers: 5, direct: 4, relay: 1, paths: 7
       }
     }));
@@ -148,7 +156,8 @@ async function collectSnapshot() {
     const empty = pug.renderFile(viewPath, Object.assign({}, locals, {
       stats: {
         available: false, cpuPercent: null, cores: null, cpuAppPercent: null, limitCores: null,
-        memUsedMb: null, memTotalMb: null, memPercent: null, memAppMb: null,
+        memUsed: null, memTotal: null, memPercent: null, memApp: null,
+        memUsedMb: null, memTotalMb: null, memAppMb: null,
         peers: null, direct: null, relay: null, paths: null
       }
     }));

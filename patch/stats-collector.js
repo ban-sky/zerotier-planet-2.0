@@ -26,7 +26,7 @@ const os = require('os');
 const path = require('path');
 const { execFile } = require('child_process');
 
-const INTERVAL_MS = Math.max(2000, Number(process.env.STATS_INTERVAL_MS) || 5000);
+const INTERVAL_MS = Math.max(2000, Number(process.env.STATS_INTERVAL_MS) || 3000);
 const STATS_FILE = process.env.STATS_FILE || '/app/config/runtime-stats.json';
 const ZT_HOME = process.env.ZT_HOME || '/var/lib/zerotier-one';
 const ZT_PORT = String(process.env.ZT_PORT || '9994');

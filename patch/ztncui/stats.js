@@ -85,6 +85,23 @@ function megabytes(bytes) {
   return Math.round(bytes / (1024 * 1024));
 }
 
+const GIB = 1024 * 1024 * 1024;
+
+// Memory is shown in GB once it is a gigabyte or more, and in whole MB below
+// that -- "512 MB" is easier to read than "0.5 GB".
+function formatMemory(bytes) {
+  if (bytes === null || bytes === undefined) return null;
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n < 0) return null;
+  if (n >= GIB) {
+    const gb = n / GIB;
+    const rounded = Math.round(gb * 10) / 10;
+    const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+    return text + ' GB';
+  }
+  return Math.round(n / (1024 * 1024)) + ' MB';
+}
+
 // Values the templates and the refresh endpoint both use, so the first paint and
 // the polled updates agree on formatting.
 function summarise(stats) {
@@ -97,9 +114,12 @@ function summarise(stats) {
     cores: cpu.cores || null,
     cpuAppPercent: cpu.appPercent === null || cpu.appPercent === undefined ? null : cpu.appPercent,
     limitCores: cpu.limitCores || null,
+    memUsed: formatMemory(mem.used),
+    memTotal: formatMemory(mem.total),
+    memPercent: mem.percent === null || mem.percent === undefined ? null : mem.percent,
+    memApp: formatMemory(mem.appUsed),
     memUsedMb: megabytes(mem.used),
     memTotalMb: megabytes(mem.total),
-    memPercent: mem.percent === null || mem.percent === undefined ? null : mem.percent,
     memAppMb: megabytes(mem.appUsed),
     memAppLimitMb: megabytes(mem.appLimit),
     peers: net ? net.peers : null,
@@ -109,4 +129,4 @@ function summarise(stats) {
   };
 }
 
-module.exports = { read, summarise, megabytes, STATS_FILE };
+module.exports = { read, summarise, megabytes, formatMemory, STATS_FILE };

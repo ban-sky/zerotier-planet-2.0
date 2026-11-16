@@ -33,6 +33,11 @@ block net_content
             else
               span.muted —
 
+  .card.form-card
+    if error
+      .alert.alert-error
+        p= error
+
     form.form-stack(method='POST', action='')
       .field
         label(for='domain')= t('field.domain')
@@ -44,7 +49,3 @@ block net_content
       .form-actions
         button.btn.btn-primary(type='submit')= t('btn.saveDns')
         a.btn.btn-ghost(href=nwurl)= t('btn.cancel')
-
-  if error
-    .alert.alert-error
-      p= error

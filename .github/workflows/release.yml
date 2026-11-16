@@ -16,7 +16,7 @@ on:
       tag:
         description: Tag/version for the release (for example v2.0.4)
         required: true
-        default: v2.0.13
+        default: v2.0.14
       include_arm64:
         description: Also build and attach a linux/arm64 archive
         type: boolean
@@ -588,7 +588,7 @@ jobs:
             https://127.0.0.1:3443/stats.json)
           echo "stats endpoint: $status"
           [ "$status" = "200" ]
-          for needle in '"cpuPercent"' '"memPercent"' '"peers"' '"cpuAppPercent"' '"memAppMb"'; do
+          for needle in '"cpuPercent"' '"memPercent"' '"peers"' '"cpuAppPercent"' '"memAppMb"' '"memUsed"'; do
             if ! grep -q "$needle" /tmp/stats.json; then
               echo "::error::the stats payload is missing $needle"
               exit 1
@@ -597,7 +597,7 @@ jobs:
 
           # Figures describe the whole machine, and the collector refreshes them
           # every five seconds by default.
-          docker exec zt-smoke sh -c 'grep -q "\"interval_ms\":5000" /app/config/runtime-stats.json'
+          docker exec zt-smoke sh -c 'grep -q "\"interval_ms\":3000" /app/config/runtime-stats.json'
           docker exec zt-smoke sh -c 'grep -q "\"appPercent\"" /app/config/runtime-stats.json'
 
           # The numbers are for signed-in users only.

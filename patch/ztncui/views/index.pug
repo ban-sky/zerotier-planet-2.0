@@ -35,7 +35,7 @@ block content
         strong.metric-value(data-stat='mem')= stats.memPercent === null ? '—' : stats.memPercent + '%'
         .meter
           span.meter-fill(data-bar='mem', data-value=stats.memPercent === null ? 0 : stats.memPercent)
-        p.metric-hint(data-stat='mem-hint', data-template=t('overview.memHint'), data-stale=t('overview.statsStale'))= stats.memPercent === null ? t('overview.statsStale') : t('overview.memHint', { used: stats.memUsedMb, total: stats.memTotalMb, app: stats.memAppMb === null ? '-' : stats.memAppMb })
+        p.metric-hint(data-stat='mem-hint', data-template=t('overview.memHint'), data-stale=t('overview.statsStale'))= stats.memPercent === null ? t('overview.statsStale') : t('overview.memHint', { used: stats.memUsed, total: stats.memTotal, app: stats.memApp === null ? '-' : stats.memApp })
 
     .card.conn-card
       .card-head

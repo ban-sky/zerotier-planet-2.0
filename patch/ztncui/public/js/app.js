@@ -138,9 +138,9 @@
         app: data.cpuAppPercent === null ? '\u2014' : data.cpuAppPercent
       }, data.cpuPercent !== null);
       hint('mem-hint', {
-        used: data.memUsedMb === null ? '\u2014' : data.memUsedMb,
-        total: data.memTotalMb === null ? '\u2014' : data.memTotalMb,
-        app: data.memAppMb === null ? '\u2014' : data.memAppMb
+        used: data.memUsed === null ? '\u2014' : data.memUsed,
+        total: data.memTotal === null ? '\u2014' : data.memTotal,
+        app: data.memApp === null ? '\u2014' : data.memApp
       }, data.memPercent !== null);
     };
 
@@ -149,6 +149,6 @@
         .then(function (response) { return response.ok ? response.json() : null; })
         .then(function (data) { if (data) paint(data); })
         .catch(function () { /* the collector may not have started yet */ });
-    }, 5000);
+    }, 3000);
   }
 })();
