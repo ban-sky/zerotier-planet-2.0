@@ -16,7 +16,7 @@ on:
       tag:
         description: Tag/version for the release (for example v2.0.4)
         required: true
-        default: v2.0.14
+        default: v2.0.15
       include_arm64:
         description: Also build and attach a linux/arm64 archive
         type: boolean
@@ -920,3 +920,29 @@ jobs:
             docker buildx imagetools create -t "${dst}:${tag}" "${IMAGE}:${tag}"
           done
           docker buildx imagetools inspect "${dst}:${TAG}"
+
+  # Mirror the freshly published package into the separate app-store repository,
+  # so one directory can be subscribed to from several 1Panel panels.
+  appstore:
+    name: Sync the 1Panel app store
+    needs: [prepare, release]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APPSTORE_TOKEN: ${{ secrets.APPSTORE_TOKEN }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Mirror the package into ban-sky/appstore
+        if: env.APPSTORE_TOKEN != ''
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          bash -n scripts/sync-1panel-appstore.sh
+          bash scripts/sync-1panel-appstore.sh --message "Sync zerotier-planet ${VERSION#v} from ban-sky/zerotier-planet-2.0"
+
+      - name: Note the skipped mirror
+        if: env.APPSTORE_TOKEN == ''
+        run: echo "::notice::APPSTORE_TOKEN is not configured, skipping the app store mirror."

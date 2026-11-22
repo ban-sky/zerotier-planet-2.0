@@ -13,6 +13,23 @@
 > 2.0.0 之前的构建曾用 `2.1.0`–`2.6.0` 编号，已统一重编：那些内容全部并入本 2.0.0，
 > 对应的旧 Release 与 tag 已删除，不再提供下载。
 
+## [2.0.15] - 2026-11-22
+
+小版本：每次发布都会把 1Panel 应用包同步到 `ban-sky/appstore`，一处发布、多处订阅。
+
+### 新增
+
+- `scripts/sync-1panel-appstore.sh`：把 `1panel/apps/zerotier-planet` 合并进 AppStore 仓库
+  （只增不减，已有版本目录保留），可选更新商店 README 的「应用列表」表格；支持
+  `--store-dir`、`--no-push`、`--dry-run`，无 token 时会给出明确报错。
+- `release.yml` 新增 `appstore` job：Release 发布成功后自动跑上面的脚本，使用
+  `APPSTORE_TOKEN` secret；未配置时打印 notice 并跳过，不影响发布。
+
+### 文档
+
+- 项目 README（中英）新增「订阅 AppStore 仓库」说明：如何把 `ban-sky/appstore` 的
+  `apps/` 同步到本机 `/opt/1panel/resource/apps/local/`，以及它与本站一键脚本的区别。
+
 ## [2.0.14] - 2026-11-16
 
 小版本：修好 DNS 页面的排版，概览改成 3 秒一刷、内存按 GB / MB 显示。
